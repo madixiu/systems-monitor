@@ -1,0 +1,632 @@
+[
+  {
+    "agent_id": "282e9b44-7a37-430c-a1b0-eb20dc9713ee",
+    "computer_name": "IT-28",
+    "fqdn": "IT-28.pak.com",
+    "domain": "pak.com",
+    "ip_addresses": ["172.16.221.55"],
+    "mac_addresses": ["ac:22:0b:ca:d8:db"],
+    "platform": "Windows",
+    "console_user": null,
+    "os_name": "Windows 11 Pro",
+    "os_version": "10.0.26200",
+    "os_build": "26200",
+    "os_arch": "64-bit",
+    "cpu_model": "Intel(R) Core(TM) i3-3220 CPU @ 3.30GHz",
+    "cpu_cores": 2,
+    "ram_bytes": 8261070848,
+    "system_type": "Desktop",
+    "motherboard": "ASUSTeK COMPUTER INC. (H61M-C)",
+    "drives": [
+      {
+        "fs": "NTFS",
+        "free": 48326352896,
+        "label": "",
+        "total": 127066435584,
+        "letter": "C:",
+        "is_system": true
+      }
+    ],
+    "disk_count": 1,
+    "system_drive_free": 48326352896,
+    "system_drive_total": 127066435584,
+    "main_storage_size": 128034708480,
+    "installed_software": [
+      {
+        "name": "Adobe Flash Player ActiveX",
+        "version": "10.0.1.218",
+        "publisher": "Adobe Systems Incorporated",
+        "install_date": ""
+      },
+      {
+        "name": "AnyDesk",
+        "version": "ad 9.7.15",
+        "publisher": "AnyDesk Software GmbH",
+        "install_date": ""
+      },
+      {
+        "name": "Copilot",
+        "version": "156.0.4314.50",
+        "publisher": "Microsoft Corporation",
+        "install_date": "20261029"
+      },
+      {
+        "name": "dorsandesk",
+        "version": "10.9.1.29823522",
+        "publisher": "THDORSAN",
+        "install_date": "20260914"
+      },
+      {
+        "name": "ePass3003 (Remove only)",
+        "version": "",
+        "publisher": "EnterSafe",
+        "install_date": ""
+      },
+      {
+        "name": "Google Chrome",
+        "version": "157.0.8103.38",
+        "publisher": "Google LLC",
+        "install_date": "20261105"
+      },
+      {
+        "name": "HP Dropbox Plugin",
+        "version": "36.0.445.57508",
+        "publisher": "HP",
+        "install_date": "20250826"
+      },
+      {
+        "name": "HP Google Drive Plugin",
+        "version": "36.0.445.57508",
+        "publisher": "HP",
+        "install_date": "20250826"
+      },
+      {
+        "name": "HP LaserJet Pro MFP M426-M427",
+        "version": "16.0.22049.102",
+        "publisher": "Hewlett-Packard",
+        "install_date": ""
+      },
+      {
+        "name": "K3 PKI version 2.1.22.0429",
+        "version": "2.1.22.0429",
+        "publisher": "Longmai Technology",
+        "install_date": "20260604"
+      },
+      {
+        "name": "Microsoft Edge",
+        "version": "156.0.4314.50",
+        "publisher": "Microsoft Corporation",
+        "install_date": "20261029"
+      },
+      {
+        "name": "Microsoft Office Professional Plus 2024 - en-us",
+        "version": "16.0.17932.20130",
+        "publisher": "Microsoft Corporation",
+        "install_date": ""
+      },
+      {
+        "name": "Microsoft OneDrive",
+        "version": "26.195.1006.0007",
+        "publisher": "Microsoft Corporation",
+        "install_date": ""
+      },
+      {
+        "name": "Microsoft Visual C++ 2008 Redistributable - x64 9.0.30729.6161",
+        "version": "9.0.30729.6161",
+        "publisher": "Microsoft Corporation",
+        "install_date": "20260604"
+      },
+      {
+        "name": "Microsoft Visual C++ 2012 Redistributable (x64) - 11.0.61030",
+        "version": "11.0.61030.0",
+        "publisher": "Microsoft Corporation",
+        "install_date": ""
+      },
+      {
+        "name": "Microsoft Visual C++ 2013 Redistributable (x64) - 12.0.30501",
+        "version": "12.0.30501.0",
+        "publisher": "Microsoft Corporation",
+        "install_date": ""
+      },
+      {
+        "name": "Microsoft Visual C++ 2015-2022 Redistributable (x64) - 14.44.35211",
+        "version": "14.44.35211.0",
+        "publisher": "Microsoft Corporation",
+        "install_date": ""
+      },
+      {
+        "name": "Microsoft Visual C++ 2015-2022 Redistributable (x86) - 14.40.33810",
+        "version": "14.40.33810.0",
+        "publisher": "Microsoft Corporation",
+        "install_date": ""
+      },
+      {
+        "name": "Microsoft Windows Application Compatibility Fix Database",
+        "version": "",
+        "publisher": "",
+        "install_date": ""
+      },
+      {
+        "name": "Mozilla Firefox (x64 en-US)",
+        "version": "153.0",
+        "publisher": "Mozilla",
+        "install_date": ""
+      },
+      {
+        "name": "Mozilla Maintenance Service",
+        "version": "142.0",
+        "publisher": "Mozilla",
+        "install_date": ""
+      },
+      {
+        "name": "NVIDIA 3D Vision Driver 388.13",
+        "version": "388.13",
+        "publisher": "NVIDIA Corporation",
+        "install_date": "20250819"
+      },
+      {
+        "name": "NVIDIA Graphics Driver 388.13",
+        "version": "388.13",
+        "publisher": "NVIDIA Corporation",
+        "install_date": "20250819"
+      },
+      {
+        "name": "NVIDIA HD Audio Driver 1.3.35.1",
+        "version": "1.3.35.1",
+        "publisher": "NVIDIA Corporation",
+        "install_date": "20250819"
+      },
+      {
+        "name": "OBS Studio",
+        "version": "32.1.2",
+        "publisher": "OBS Project",
+        "install_date": ""
+      },
+      {
+        "name": "Padvish AV",
+        "version": "3.3.547.17231",
+        "publisher": "Amnpardaz Software Co.",
+        "install_date": ""
+      },
+      {
+        "name": "Padvish Key Management Server",
+        "version": "3.3.270.10368",
+        "publisher": "Amnpardaz Software Company",
+        "install_date": ""
+      },
+      {
+        "name": "Padvish Management Server",
+        "version": "3.3.270.10368",
+        "publisher": "Amnpardaz Software Company",
+        "install_date": ""
+      },
+      {
+        "name": "PKI Management Tools",
+        "version": "1.2.8.1",
+        "publisher": "PKI",
+        "install_date": "20260604"
+      },
+      {
+        "name": "PuTTY release 0.85 (64-bit)",
+        "version": "0.85.0.0",
+        "publisher": "Simon Tatham",
+        "install_date": "20260827"
+      },
+      {
+        "name": "RustDesk",
+        "version": "1.5.0",
+        "publisher": "RustDesk",
+        "install_date": ""
+      },
+      {
+        "name": "ScreenConnect Client (0b44d55af02ad468)",
+        "version": "25.4.25.9314",
+        "publisher": "ScreenConnect Software",
+        "install_date": "20250906"
+      },
+      {
+        "name": "Tamin listDisk 2.7",
+        "version": "2.7",
+        "publisher": "Tamin Co",
+        "install_date": "20250830"
+      },
+      {
+        "name": "TransMac version 14.8",
+        "version": "14.8",
+        "publisher": "Acute Systems",
+        "install_date": "20250909"
+      },
+      {
+        "name": "Windows Driver Package - Google, Inc. (WinUSB) AndroidUsbDeviceClass  (08/27/2012 7.0.0000.00004)",
+        "version": "08/27/2012 7.0.0000.00004",
+        "publisher": "Google, Inc.",
+        "install_date": ""
+      },
+      {
+        "name": "Windows Driver Package - SAMSUNG Electronics Co., Ltd.  (dg_ssudbus) USB  (12/02/2015 2.12.1.0)",
+        "version": "12/02/2015 2.12.1.0",
+        "publisher": "SAMSUNG Electronics Co., Ltd. ",
+        "install_date": ""
+      },
+      {
+        "name": "Windows Driver Package - SAMSUNG Electronics Co., Ltd.  (ssudmdm) Modem  (12/02/2015 2.12.1.0)",
+        "version": "12/02/2015 2.12.1.0",
+        "publisher": "SAMSUNG Electronics Co., Ltd. ",
+        "install_date": ""
+      },
+      {
+        "name": "Windows Driver Package - SAMSUNG Electronics Co., Ltd.  (WinUSB) AndroidUsbDeviceClass  (12/02/2015 2.12.1.0)",
+        "version": "12/02/2015 2.12.1.0",
+        "publisher": "SAMSUNG Electronics Co., Ltd. ",
+        "install_date": ""
+      },
+      {
+        "name": "WinRAR 7.13 (64-bit)",
+        "version": "7.13.0",
+        "publisher": "win.rar GmbH",
+        "install_date": ""
+      },
+      {
+        "name": "ZD Soft Screen Recorder 11.3.1",
+        "version": "11.3.1.0",
+        "publisher": "ZD Soft",
+        "install_date": "20260721"
+      }
+    ],
+    "software_count": 40,
+    "updates": [
+      {
+        "kb": "KB5050575",
+        "description": "Update",
+        "installed_on": "8/19/2025"
+      },
+      {
+        "kb": "KB5054273",
+        "description": "Update",
+        "installed_on": "8/19/2025"
+      },
+      {
+        "kb": "KB5059093",
+        "description": "Update",
+        "installed_on": "8/19/2025"
+      },
+      {
+        "kb": "KB5054156",
+        "description": "Update",
+        "installed_on": "6/20/2026"
+      },
+      {
+        "kb": "KB5127690",
+        "description": "Update",
+        "installed_on": "10/15/2026"
+      },
+      {
+        "kb": "KB5127648",
+        "description": "Security Update",
+        "installed_on": "10/15/2026"
+      },
+      {
+        "kb": "KB5127647",
+        "description": "Security Update",
+        "installed_on": "10/14/2026"
+      }
+    ],
+    "update_count": 7,
+    "last_seen": "2026-11-05 16:09:25.152219+03:30",
+    "reported_at": "2026-11-05 16:05:25.065819+03:30",
+    "maintenance": false,
+    "maintenance_since": null,
+    "force_refresh": false,
+    "raw_json": {
+      "os": {
+        "arch": "64-bit",
+        "name": "Windows 11 Pro",
+        "build": "26200",
+        "version": "10.0.26200"
+      },
+      "fqdn": "IT-28.pak.com",
+      "domain": "pak.com",
+      "drives": [
+        {
+          "fs": "NTFS",
+          "free": 48326352896,
+          "label": "",
+          "total": 127066435584,
+          "letter": "C:",
+          "is_system": true
+        }
+      ],
+      "updates": [
+        {
+          "kb": "KB5050575",
+          "description": "Update",
+          "installed_on": "8/19/2025"
+        },
+        {
+          "kb": "KB5054273",
+          "description": "Update",
+          "installed_on": "8/19/2025"
+        },
+        {
+          "kb": "KB5059093",
+          "description": "Update",
+          "installed_on": "8/19/2025"
+        },
+        {
+          "kb": "KB5054156",
+          "description": "Update",
+          "installed_on": "6/20/2026"
+        },
+        {
+          "kb": "KB5127690",
+          "description": "Update",
+          "installed_on": "10/15/2026"
+        },
+        {
+          "kb": "KB5127648",
+          "description": "Security Update",
+          "installed_on": "10/15/2026"
+        },
+        {
+          "kb": "KB5127647",
+          "description": "Security Update",
+          "installed_on": "10/14/2026"
+        }
+      ],
+      "platform": "Windows",
+      "cpu_cores": 2,
+      "cpu_model": "Intel(R) Core(TM) i3-3220 CPU @ 3.30GHz",
+      "ram_bytes": 8261070848,
+      "motherboard": "ASUSTeK COMPUTER INC. (H61M-C)",
+      "system_type": "Desktop",
+      "console_user": null,
+      "ip_addresses": ["172.16.221.55"],
+      "computer_name": "IT-28",
+      "mac_addresses": ["AC:22:0B:CA:D8:DB"],
+      "installed_software": [
+        {
+          "name": "Adobe Flash Player ActiveX",
+          "version": "10.0.1.218",
+          "publisher": "Adobe Systems Incorporated",
+          "install_date": ""
+        },
+        {
+          "name": "AnyDesk",
+          "version": "ad 9.7.15",
+          "publisher": "AnyDesk Software GmbH",
+          "install_date": ""
+        },
+        {
+          "name": "Copilot",
+          "version": "156.0.4314.50",
+          "publisher": "Microsoft Corporation",
+          "install_date": "20261029"
+        },
+        {
+          "name": "dorsandesk",
+          "version": "10.9.1.29823522",
+          "publisher": "THDORSAN",
+          "install_date": "20260914"
+        },
+        {
+          "name": "ePass3003 (Remove only)",
+          "version": "",
+          "publisher": "EnterSafe",
+          "install_date": ""
+        },
+        {
+          "name": "Google Chrome",
+          "version": "157.0.8103.38",
+          "publisher": "Google LLC",
+          "install_date": "20261105"
+        },
+        {
+          "name": "HP Dropbox Plugin",
+          "version": "36.0.445.57508",
+          "publisher": "HP",
+          "install_date": "20250826"
+        },
+        {
+          "name": "HP Google Drive Plugin",
+          "version": "36.0.445.57508",
+          "publisher": "HP",
+          "install_date": "20250826"
+        },
+        {
+          "name": "HP LaserJet Pro MFP M426-M427",
+          "version": "16.0.22049.102",
+          "publisher": "Hewlett-Packard",
+          "install_date": ""
+        },
+        {
+          "name": "K3 PKI version 2.1.22.0429",
+          "version": "2.1.22.0429",
+          "publisher": "Longmai Technology",
+          "install_date": "20260604"
+        },
+        {
+          "name": "Microsoft Edge",
+          "version": "156.0.4314.50",
+          "publisher": "Microsoft Corporation",
+          "install_date": "20261029"
+        },
+        {
+          "name": "Microsoft Office Professional Plus 2024 - en-us",
+          "version": "16.0.17932.20130",
+          "publisher": "Microsoft Corporation",
+          "install_date": ""
+        },
+        {
+          "name": "Microsoft OneDrive",
+          "version": "26.195.1006.0007",
+          "publisher": "Microsoft Corporation",
+          "install_date": ""
+        },
+        {
+          "name": "Microsoft Visual C++ 2008 Redistributable - x64 9.0.30729.6161",
+          "version": "9.0.30729.6161",
+          "publisher": "Microsoft Corporation",
+          "install_date": "20260604"
+        },
+        {
+          "name": "Microsoft Visual C++ 2012 Redistributable (x64) - 11.0.61030",
+          "version": "11.0.61030.0",
+          "publisher": "Microsoft Corporation",
+          "install_date": ""
+        },
+        {
+          "name": "Microsoft Visual C++ 2013 Redistributable (x64) - 12.0.30501",
+          "version": "12.0.30501.0",
+          "publisher": "Microsoft Corporation",
+          "install_date": ""
+        },
+        {
+          "name": "Microsoft Visual C++ 2015-2022 Redistributable (x64) - 14.44.35211",
+          "version": "14.44.35211.0",
+          "publisher": "Microsoft Corporation",
+          "install_date": ""
+        },
+        {
+          "name": "Microsoft Visual C++ 2015-2022 Redistributable (x86) - 14.40.33810",
+          "version": "14.40.33810.0",
+          "publisher": "Microsoft Corporation",
+          "install_date": ""
+        },
+        {
+          "name": "Microsoft Windows Application Compatibility Fix Database",
+          "version": "",
+          "publisher": "",
+          "install_date": ""
+        },
+        {
+          "name": "Mozilla Firefox (x64 en-US)",
+          "version": "153.0",
+          "publisher": "Mozilla",
+          "install_date": ""
+        },
+        {
+          "name": "Mozilla Maintenance Service",
+          "version": "142.0",
+          "publisher": "Mozilla",
+          "install_date": ""
+        },
+        {
+          "name": "NVIDIA 3D Vision Driver 388.13",
+          "version": "388.13",
+          "publisher": "NVIDIA Corporation",
+          "install_date": "20250819"
+        },
+        {
+          "name": "NVIDIA Graphics Driver 388.13",
+          "version": "388.13",
+          "publisher": "NVIDIA Corporation",
+          "install_date": "20250819"
+        },
+        {
+          "name": "NVIDIA HD Audio Driver 1.3.35.1",
+          "version": "1.3.35.1",
+          "publisher": "NVIDIA Corporation",
+          "install_date": "20250819"
+        },
+        {
+          "name": "OBS Studio",
+          "version": "32.1.2",
+          "publisher": "OBS Project",
+          "install_date": ""
+        },
+        {
+          "name": "Padvish AV",
+          "version": "3.3.547.17231",
+          "publisher": "Amnpardaz Software Co.",
+          "install_date": ""
+        },
+        {
+          "name": "Padvish Key Management Server",
+          "version": "3.3.270.10368",
+          "publisher": "Amnpardaz Software Company",
+          "install_date": ""
+        },
+        {
+          "name": "Padvish Management Server",
+          "version": "3.3.270.10368",
+          "publisher": "Amnpardaz Software Company",
+          "install_date": ""
+        },
+        {
+          "name": "PKI Management Tools",
+          "version": "1.2.8.1",
+          "publisher": "PKI",
+          "install_date": "20260604"
+        },
+        {
+          "name": "PuTTY release 0.85 (64-bit)",
+          "version": "0.85.0.0",
+          "publisher": "Simon Tatham",
+          "install_date": "20260827"
+        },
+        {
+          "name": "RustDesk",
+          "version": "1.5.0",
+          "publisher": "RustDesk",
+          "install_date": ""
+        },
+        {
+          "name": "ScreenConnect Client (0b44d55af02ad468)",
+          "version": "25.4.25.9314",
+          "publisher": "ScreenConnect Software",
+          "install_date": "20250906"
+        },
+        {
+          "name": "Tamin listDisk 2.7",
+          "version": "2.7",
+          "publisher": "Tamin Co",
+          "install_date": "20250830"
+        },
+        {
+          "name": "TransMac version 14.8",
+          "version": "14.8",
+          "publisher": "Acute Systems",
+          "install_date": "20250909"
+        },
+        {
+          "name": "Windows Driver Package - Google, Inc. (WinUSB) AndroidUsbDeviceClass  (08/27/2012 7.0.0000.00004)",
+          "version": "08/27/2012 7.0.0000.00004",
+          "publisher": "Google, Inc.",
+          "install_date": ""
+        },
+        {
+          "name": "Windows Driver Package - SAMSUNG Electronics Co., Ltd.  (dg_ssudbus) USB  (12/02/2015 2.12.1.0)",
+          "version": "12/02/2015 2.12.1.0",
+          "publisher": "SAMSUNG Electronics Co., Ltd. ",
+          "install_date": ""
+        },
+        {
+          "name": "Windows Driver Package - SAMSUNG Electronics Co., Ltd.  (ssudmdm) Modem  (12/02/2015 2.12.1.0)",
+          "version": "12/02/2015 2.12.1.0",
+          "publisher": "SAMSUNG Electronics Co., Ltd. ",
+          "install_date": ""
+        },
+        {
+          "name": "Windows Driver Package - SAMSUNG Electronics Co., Ltd.  (WinUSB) AndroidUsbDeviceClass  (12/02/2015 2.12.1.0)",
+          "version": "12/02/2015 2.12.1.0",
+          "publisher": "SAMSUNG Electronics Co., Ltd. ",
+          "install_date": ""
+        },
+        {
+          "name": "WinRAR 7.13 (64-bit)",
+          "version": "7.13.0",
+          "publisher": "win.rar GmbH",
+          "install_date": ""
+        },
+        {
+          "name": "ZD Soft Screen Recorder 11.3.1",
+          "version": "11.3.1.0",
+          "publisher": "ZD Soft",
+          "install_date": "20260721"
+        }
+      ],
+      "physical_disk_bytes": 128034708480
+    },
+    "created_at": "2026-11-05 15:50:19.206825+03:30"
+  }
+]

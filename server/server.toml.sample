@@ -1,0 +1,3 @@
+bind = "0.0.0.0:8080"
+database_url = "postgres://pak:192.168.12.200@pak/pak_monitor"
+log_level = "info"

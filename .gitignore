@@ -1,0 +1,12 @@
+target/
+**/target/
+Cargo.lock
+*.exe
+*.dll
+agent/agent.toml.local
+.vscode/
+.idea/
+*.swp
+node_modules/
+dist/
+server.toml
