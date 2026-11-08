@@ -173,6 +173,7 @@ export default function App() {
           s.computer_name,
           s.fqdn,
           s.domain,
+          s.console_user,
           ...(s.ip_addresses || []),
           ...(s.mac_addresses || []),
         ]

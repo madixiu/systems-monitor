@@ -50,7 +50,7 @@ pub fn fill(sys: &mut SystemInfo) -> Result<()> {
         sys.cpu_model = cpu.brand().trim().to_string();
     }
     sys.cpu_cores = sysinfo.cpus().len() as u32;
-    sys.ram_bytes = sysinfo.total_memory() * 1024; // sysinfo returns KB
+    sys.ram_bytes = sysinfo.total_memory(); // sysinfo 0.32 returns bytes
 
     // Motherboard
     let vendor = fs::read_to_string("/sys/class/dmi/id/board_vendor").unwrap_or_default();
