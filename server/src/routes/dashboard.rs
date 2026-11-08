@@ -97,7 +97,12 @@ pub async fn force_refresh(
     _auth: ApiAuth,
     Path(agent_id): Path<Uuid>,
 ) -> Result<Json<Value>, AppError> {
-    let res = sqlx::query("UPDATE systems SET force_refresh = true WHERE agent_id = $1")
+    let res = sqlx::query(
+        "UPDATE systems
+         SET force_refresh = true,
+             force_refresh_generation = force_refresh_generation + 1
+         WHERE agent_id = $1"
+    )
         .bind(agent_id)
         .execute(&state.pool)
         .await?;

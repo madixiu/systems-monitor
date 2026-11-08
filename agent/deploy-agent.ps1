@@ -19,23 +19,29 @@ try {
 
     $svc = Get-Service -Name $svcName -ErrorAction SilentlyContinue
 
-    # Replace the exe only if missing or different
-    $needCopy = -not (Test-Path $dstExe) -or
-                ((Get-FileHash $srcExe).Hash -ne (Get-FileHash $dstExe).Hash)
+    # Compare both centrally managed files by content hash.
+    $needExeCopy = -not (Test-Path $dstExe) -or
+                   ((Get-FileHash $srcExe).Hash -ne (Get-FileHash $dstExe).Hash)
+    $needCfgCopy = (Test-Path $srcCfg) -and (
+                       -not (Test-Path $dstCfg) -or
+                       ((Get-FileHash $srcCfg).Hash -ne (Get-FileHash $dstCfg).Hash)
+                   )
 
-    if ($needCopy) {
+    if ($needExeCopy -or $needCfgCopy) {
         if ($svc -and $svc.Status -ne 'Stopped') {
             Stop-Service -Name $svcName -Force
             $svc.WaitForStatus('Stopped', [TimeSpan]::FromSeconds(30))
         }
-        Copy-Item $srcExe $dstExe -Force
-        Log "executable installed/updated"
-    }
 
-    # Config only if not already present
-    if (-not (Test-Path $dstCfg) -and (Test-Path $srcCfg)) {
-        Copy-Item $srcCfg $dstCfg -Force
-        Log "config copied"
+        if ($needExeCopy) {
+            Copy-Item $srcExe $dstExe -Force
+            Log "executable installed/updated"
+        }
+
+        if ($needCfgCopy) {
+            Copy-Item $srcCfg $dstCfg -Force
+            Log "config installed/updated"
+        }
     }
 
     if (-not $svc) {

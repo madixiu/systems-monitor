@@ -347,8 +347,8 @@ url = "http://172.16.235.235"
 enrollment_secret = "c5fd8dc4fea225a2fc31e924bd66426ac5c266255ab7ee3f3c3777d284eeb09f"
 
 [interval]
-heartbeat_secs = 30
-report_secs = 300
+heartbeat_secs = 180
+report_secs = 86400
 
 [log]
 level = "info"
@@ -414,8 +414,8 @@ url = "http://172.16.235.235"
 enrollment_secret = "c5fd8dc4fea225a2fc31e924bd66426ac5c266255ab7ee3f3c3777d284eeb09f"
 
 [interval]
-heartbeat_secs = 30
-report_secs = 300
+heartbeat_secs = 180
+report_secs = 86400
 
 [log]
 level = "info"

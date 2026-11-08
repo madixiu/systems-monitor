@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use chrono::Utc;
 use std::time::Duration;
 use tokio::sync::watch;
 use tracing::{error, info};
@@ -32,10 +33,17 @@ async fn main_loop(mut shutdown_rx: watch::Receiver<bool>) -> Result<()> {
 
     let hb_dur = Duration::from_secs(cfg.interval.heartbeat_secs.max(10));
     let report_dur = Duration::from_secs(cfg.interval.report_secs.max(60));
-    let mut last_report: Option<std::time::Instant> = None;
+    let mut retry_at: Option<std::time::Instant> = None;
+    let mut retry_delay = Duration::from_secs(60);
 
     loop {
-        if let Err(e) = tick(&client, &mut st, &mut last_report, report_dur).await {
+        if let Err(e) = tick(
+            &client,
+            &mut st,
+            report_dur,
+            &mut retry_at,
+            &mut retry_delay,
+        ).await {
             error!("tick: {e:#}");
         }
 
@@ -54,25 +62,49 @@ async fn main_loop(mut shutdown_rx: watch::Receiver<bool>) -> Result<()> {
 async fn tick(
     client: &ReportClient,
     st: &mut State,
-    last_report: &mut Option<std::time::Instant>,
     report_dur: Duration,
+    retry_at: &mut Option<std::time::Instant>,
+    retry_delay: &mut Duration,
 ) -> Result<()> {
     let hb = client.heartbeat(st).await?;
 
-    let due = match *last_report {
-        None => true,
-        Some(t) => t.elapsed() >= report_dur,
-    };
+    let due = st.last_report_at
+        .map(|t| Utc::now().signed_duration_since(t).to_std().unwrap_or_default() >= report_dur)
+        .unwrap_or(false);
 
     if hb.full_report || due {
-        let report: Report = collect_all(st.agent_id).await?;
-        client.ingest(st, &report).await?;
-        *last_report = Some(std::time::Instant::now());
+        if retry_at.is_some_and(|at| std::time::Instant::now() < at) {
+            return Ok(());
+        }
+
+        let mut report: Report = match collect_all(st.agent_id).await {
+            Ok(report) => report,
+            Err(error) => {
+                schedule_retry(retry_at, retry_delay);
+                return Err(error);
+            }
+        };
+        report.refresh_generation = hb.refresh_generation;
+
+        if let Err(error) = client.ingest(st, &report).await {
+            schedule_retry(retry_at, retry_delay);
+            return Err(error);
+        }
+
+        st.last_report_at = Some(Utc::now());
+        st.save()?;
+        *retry_at = None;
+        *retry_delay = Duration::from_secs(60);
         info!(
             host = %report.system.computer_name,
             ips = ?report.system.ip_addresses,
             "report sent"
         );
+    }
+
+    fn schedule_retry(retry_at: &mut Option<std::time::Instant>, retry_delay: &mut Duration) {
+        *retry_at = Some(std::time::Instant::now() + *retry_delay);
+        *retry_delay = std::cmp::min(*retry_delay + *retry_delay, Duration::from_secs(3600));
     }
     Ok(())
 }

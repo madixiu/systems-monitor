@@ -40,6 +40,7 @@ impl ReportClient {
             agent_id: body.agent_id,
             token: body.token,
             enrolled_at: chrono::Utc::now(),
+            last_report_at: None,
         })
     }
 

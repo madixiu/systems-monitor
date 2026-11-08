@@ -6,6 +6,8 @@ use uuid::Uuid;
 pub struct Report {
     pub agent_id: Uuid,
     pub collected_at: DateTime<Utc>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub refresh_generation: Option<i64>,
     pub system: SystemInfo,
 }
 
@@ -72,4 +74,6 @@ pub struct EnrollResponse {
 #[derive(Debug, Deserialize)]
 pub struct HeartbeatResponse {
     pub full_report: bool,
+    #[serde(default)]
+    pub refresh_generation: Option<i64>,
 }

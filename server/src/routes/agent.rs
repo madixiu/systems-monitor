@@ -77,39 +77,57 @@ pub async fn heartbeat(
         .execute(&state.pool)
         .await?;
 
-    // check force_refresh
-    let refresh: Option<(bool,)> = sqlx::query_as(
-        "UPDATE systems SET force_refresh = false, last_seen = now()
-         WHERE agent_id = $1 AND force_refresh = true
-         RETURNING true"
+    let report_interval: Option<(Value,)> = sqlx::query_as(
+        "SELECT value FROM settings WHERE key = 'report_interval_secs'"
+    )
+    .fetch_optional(&state.pool)
+    .await?;
+    let report_interval_secs = report_interval
+        .and_then(|(value,)| {
+            value.as_i64().or_else(|| value.as_str()?.parse::<i64>().ok())
+        })
+        .unwrap_or(86_400)
+        .max(60);
+
+    let system: Option<(bool, i64, Option<DateTime<Utc>>, DateTime<Utc>)> = sqlx::query_as(
+        "UPDATE systems SET last_seen = now()
+         WHERE agent_id = $1
+         RETURNING force_refresh, force_refresh_generation, reported_at, last_seen"
     )
     .bind(agent_id)
     .fetch_optional(&state.pool)
     .await?;
 
-    // Update last_seen even if no refresh — but only if systems row exists
-    let last_seen: Option<(chrono::DateTime<chrono::Utc>,)> =
-        if refresh.is_none() {
-            sqlx::query_as(
-                "UPDATE systems SET last_seen = now() WHERE agent_id = $1 RETURNING last_seen"
-            )
-            .bind(agent_id)
-            .fetch_optional(&state.pool)
-            .await?
-        } else {
-            // refresh=true path already touched last_seen; fetch it
-            sqlx::query_as("SELECT last_seen FROM systems WHERE agent_id = $1")
-                .bind(agent_id)
-                .fetch_optional(&state.pool)
-                .await?
-        };
-
     // Broadcast lightweight heartbeat so dashboards keep the row fresh
-    if let Some((ts,)) = last_seen {
-        let _ = state.tx.send(SystemEvent::Heartbeat { agent_id, last_seen: ts });
+    if let Some((_, _, _, ts)) = system.as_ref() {
+        let _ = state.tx.send(SystemEvent::Heartbeat {
+            agent_id,
+            last_seen: ts.clone(),
+        });
     }
 
-    Ok(Json(json!({ "full_report": refresh.is_some() })))
+    let full_report = system
+        .as_ref()
+        .map(|(refresh, _, reported_at, _)| {
+            *refresh
+                || reported_at
+                    .map(|reported| {
+                        Utc::now()
+                            .signed_duration_since(reported)
+                            .num_seconds()
+                            >= report_interval_secs
+                    })
+                    .unwrap_or(true)
+        })
+        .unwrap_or(true);
+    let refresh_generation = system
+        .as_ref()
+        .and_then(|(refresh, generation, _, _)| refresh.then_some(*generation));
+
+    Ok(Json(json!({
+        "full_report": full_report,
+        "refresh_generation": refresh_generation
+    })))
 }
 
 // ---------- ingest ----------
@@ -118,6 +136,8 @@ pub async fn heartbeat(
 pub struct IngestReq {
     #[allow(dead_code)] pub agent_id: Uuid,
     pub collected_at: DateTime<Utc>,
+    #[serde(default)]
+    pub refresh_generation: Option<i64>,
     pub system: SystemPayload,
 }
 
@@ -272,6 +292,20 @@ pub async fn ingest(
     .bind(raw_json)
     .execute(&state.pool)
     .await?;
+
+    if let Some(generation) = req.refresh_generation {
+        sqlx::query(
+            "UPDATE systems
+             SET force_refresh = false
+             WHERE agent_id = $1
+               AND force_refresh = true
+               AND force_refresh_generation = $2"
+        )
+        .bind(agent_id)
+        .bind(generation)
+        .execute(&state.pool)
+        .await?;
+    }
 
     let _ = sqlx::query("UPDATE agents SET computer_name = $1 WHERE agent_id = $2")
         .bind(&sys.computer_name)

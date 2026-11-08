@@ -12,6 +12,8 @@ pub struct State {
     pub agent_id: Uuid,
     pub token: String,
     pub enrolled_at: DateTime<Utc>,
+    #[serde(default)]
+    pub last_report_at: Option<DateTime<Utc>>,
 }
 
 impl State {

@@ -38,8 +38,8 @@ pub struct IntervalConfig {
     #[serde(default = "default_report")]
     pub report_secs: u64,
 }
-fn default_heartbeat() -> u64 { 30 }
-fn default_report()    -> u64 { 300 }
+fn default_heartbeat() -> u64 { 180 }
+fn default_report()    -> u64 { 86_400 }
 impl Default for IntervalConfig {
     fn default() -> Self {
         Self { heartbeat_secs: default_heartbeat(), report_secs: default_report() }

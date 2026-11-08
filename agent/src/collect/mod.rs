@@ -31,6 +31,7 @@ pub fn collect_sync(agent_id: Uuid) -> Result<Report> {
             return Ok(Report {
                 agent_id,
                 collected_at: Utc::now(),
+                refresh_generation: None,
                 system: sys,
             });
         }
@@ -51,6 +52,7 @@ pub fn collect_sync(agent_id: Uuid) -> Result<Report> {
     Ok(Report {
         agent_id,
         collected_at: Utc::now(),
+        refresh_generation: None,
         system: sys,
     })
 }
