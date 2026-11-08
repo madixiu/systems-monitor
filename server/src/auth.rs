@@ -69,10 +69,23 @@ impl FromRequestParts<AppState> for ApiAuth {
     }
 }
 
+// pub async fn verify_api_key(pool: &PgPool, key: &str) -> Result<(), AppError> {
+//     let h = hash_token(key);
+//     let row: Option<(String,)> = sqlx::query_as(
+//         "SELECT key_hash FROM api_keys WHERE key_hash = $1 AND revoked_at IS NULL"
+//     )
+//     .bind(&h)
+//     .fetch_optional(pool)
+//     .await?;
+//     row.ok_or(AppError::Unauthorized("invalid API key")).map(|_| ())
+// }
 pub async fn verify_api_key(pool: &PgPool, key: &str) -> Result<(), AppError> {
     let h = hash_token(key);
     let row: Option<(String,)> = sqlx::query_as(
-        "SELECT key_hash FROM api_keys WHERE key_hash = $1 AND revoked_at IS NULL"
+        "UPDATE api_keys
+         SET last_used = now()
+         WHERE key_hash = $1 AND revoked_at IS NULL
+         RETURNING key_hash"
     )
     .bind(&h)
     .fetch_optional(pool)

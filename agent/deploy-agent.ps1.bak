@@ -1,0 +1,45 @@
+$content = @'
+$ErrorActionPreference = 'Stop'
+
+$srcDir     = '\\192.168.12.1\netlogon\pak-monitor'
+$installDir = 'C:\ProgramData\PakMonitor'
+$exeName    = 'pak-monitor-agent.exe'
+$svcName    = 'PakMonitorAgent'
+
+New-Item -ItemType Directory -Force -Path $installDir | Out-Null
+
+$srcExe = Join-Path $srcDir $exeName
+$dstExe = Join-Path $installDir $exeName
+$needCopy = $true
+if (Test-Path $dstExe) {
+    if ((Get-Item $srcExe).LastWriteTime -le (Get-Item $dstExe).LastWriteTime) {
+        $needCopy = $false
+    }
+}
+if ($needCopy) {
+    Copy-Item $srcExe $dstExe -Force
+}
+
+$srcCfg = Join-Path $srcDir 'agent.toml'
+$dstCfg = Join-Path $installDir 'agent.toml'
+if (-not (Test-Path $dstCfg)) {
+    Copy-Item $srcCfg $dstCfg -Force
+}
+
+$svc = Get-Service -Name $svcName -ErrorAction SilentlyContinue
+if (-not $svc) {
+    New-Service -Name $svcName `
+        -BinaryPathName $dstExe `
+        -DisplayName 'PAK Monitor Agent' `
+        -Description 'Reports system telemetry to PAK Monitor server' `
+        -StartupType Automatic
+}
+
+$svc = Get-Service -Name $svcName
+if ($svc.Status -ne 'Running') {
+    Start-Service -Name $svcName
+}
+'@
+
+Set-Content -Path '\\192.168.12.1\netlogon\pak-monitor\deploy-agent.ps1' `
+    -Value $content -Encoding ASCII

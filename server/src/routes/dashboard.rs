@@ -207,3 +207,125 @@ pub async fn put_settings(
     }
     Ok(Json(json!({ "ok": true })))
 }
+
+
+use crate::auth::{generate_token, hash_token};
+
+#[derive(Debug, Deserialize)]
+pub struct CreateKeyReq {
+    pub label: String,
+}
+
+pub async fn create_api_key(
+    State(state): State<AppState>,
+    _auth: ApiAuth,
+    Json(req): Json<CreateKeyReq>,
+) -> Result<Json<Value>, AppError> {
+    if req.label.trim().is_empty() {
+        return Err(AppError::BadRequest("label required".into()));
+    }
+    let key = generate_token();
+    let hash = hash_token(&key);
+    sqlx::query("INSERT INTO api_keys (key_hash, label) VALUES ($1, $2)")
+        .bind(&hash)
+        .bind(&req.label)
+        .execute(&state.pool)
+        .await?;
+    tracing::info!(label = %req.label, "new api key issued");
+    Ok(Json(json!({
+        "key": key,
+        "label": req.label,
+        "note": "Save this now — it will not be shown again.",
+    })))
+}
+
+pub async fn list_api_keys(
+    State(state): State<AppState>,
+    _auth: ApiAuth,
+) -> Result<Json<Value>, AppError> {
+    let rows: Vec<(String, chrono::DateTime<chrono::Utc>, Option<chrono::DateTime<chrono::Utc>>, Option<chrono::DateTime<chrono::Utc>>)> =
+        sqlx::query_as(
+            "SELECT label, created_at, last_used, revoked_at FROM api_keys ORDER BY created_at DESC"
+        )
+        .fetch_all(&state.pool)
+        .await?;
+    let items: Vec<Value> = rows
+        .into_iter()
+        .map(|(label, created_at, last_used, revoked_at)| {
+            json!({
+                "label": label,
+                "created_at": created_at,
+                "last_used": last_used,
+                "revoked": revoked_at.is_some(),
+            })
+        })
+        .collect();
+    Ok(Json(json!({ "items": items })))
+}
+
+// ---------- agent registry ----------
+
+pub async fn list_agents(
+    State(state): State<AppState>,
+    _auth: ApiAuth,
+) -> Result<Json<Value>, AppError> {
+    let rows: Vec<(
+        uuid::Uuid,                // agent_id
+        Option<String>,            // computer_name (from agents row)
+        chrono::DateTime<chrono::Utc>,  // enrolled_at
+        Option<chrono::DateTime<chrono::Utc>>, // last_seen
+        Option<chrono::DateTime<chrono::Utc>>, // revoked_at
+    )> = sqlx::query_as(
+        "SELECT agent_id, computer_name, enrolled_at, last_seen, revoked_at
+         FROM agents ORDER BY enrolled_at DESC"
+    )
+    .fetch_all(&state.pool)
+    .await?;
+
+    let items: Vec<Value> = rows.into_iter().map(|(id, name, enrolled, last_seen, revoked)| {
+        json!({
+            "agent_id": id,
+            "computer_name": name,
+            "enrolled_at": enrolled,
+            "last_seen": last_seen,
+            "revoked": revoked.is_some(),
+            "revoked_at": revoked,
+        })
+    }).collect();
+    Ok(Json(json!({ "items": items })))
+}
+
+pub async fn revoke_agent(
+    State(state): State<AppState>,
+    _auth: ApiAuth,
+    axum::extract::Path(agent_id): axum::extract::Path<uuid::Uuid>,
+) -> Result<Json<Value>, AppError> {
+    let res = sqlx::query(
+        "UPDATE agents SET revoked_at = now() WHERE agent_id = $1 AND revoked_at IS NULL"
+    )
+    .bind(agent_id)
+    .execute(&state.pool)
+    .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::NotFound);
+    }
+    tracing::warn!(%agent_id, "agent token revoked");
+    Ok(Json(json!({ "ok": true })))
+}
+
+pub async fn reinstate_agent(
+    State(state): State<AppState>,
+    _auth: ApiAuth,
+    axum::extract::Path(agent_id): axum::extract::Path<uuid::Uuid>,
+) -> Result<Json<Value>, AppError> {
+    let res = sqlx::query(
+        "UPDATE agents SET revoked_at = NULL WHERE agent_id = $1"
+    )
+    .bind(agent_id)
+    .execute(&state.pool)
+    .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::NotFound);
+    }
+    Ok(Json(json!({ "ok": true })))
+}

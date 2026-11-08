@@ -61,6 +61,11 @@ async fn main() -> Result<()> {
                get(routes::dashboard::get_settings).put(routes::dashboard::put_settings))
         .route("/api/v1/stream",          get(routes::stream::sse))
         .route("/api/v1/export",          get(routes::export::export))
+        .route("/api/v1/api-keys",
+               get(routes::dashboard::list_api_keys).post(routes::dashboard::create_api_key))
+        .route("/api/v1/agents",     get(routes::dashboard::list_agents))
+        .route("/api/v1/agents/:id/revoke",    post(routes::dashboard::revoke_agent))
+        .route("/api/v1/agents/:id/reinstate", post(routes::dashboard::reinstate_agent))
         .route("/health",                 get(|| async { "ok" }))
         .with_state(state)
         .layer(CorsLayer::permissive())

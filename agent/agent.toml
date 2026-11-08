@@ -2,7 +2,7 @@
 # use whatever IP/hostname the Debian box will have
 url = "http://192.168.12.200"
 # shared enrollment secret (visible in dashboard settings, rotatable)
-enrollment_secret = "CHANGE-ME-SHARED-ENROLL-SECRET"
+enrollment_secret = "c5fd8dc4fea225a2fc31e924bd66426ac5c266255ab7ee3f3c3777d284eeb09f"
 
 [interval]
 heartbeat_secs = 30
