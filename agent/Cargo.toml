@@ -7,7 +7,7 @@ edition = "2021"
 name = "pak-monitor-agent"
 path = "src/main.rs"
 
-[dependencies]
+[target.'cfg(windows)'.dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync"] }
 reqwest = { version = "0.12", default-features = false, features = ["json"] }
 serde = { version = "1", features = ["derive"] }
@@ -29,5 +29,23 @@ windows = { version = "0.58", features = [
 wmi = "0.15"
 winreg = "0.52"
 
+[target.'cfg(target_os = "linux")'.dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync"] }
+reqwest = { version = "0.12", default-features = false, features = ["json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+sysinfo = "0.32"
+nix = { version = "0.29", features = ["net", "fs", "feature"] }
+libc = "0.2"
+
 [profile.release]
+strip = "symbols"
 panic = "abort"
+

@@ -77,6 +77,7 @@ pub async fn heartbeat(
         .execute(&state.pool)
         .await?;
 
+    // check force_refresh
     let refresh: Option<(bool,)> = sqlx::query_as(
         "UPDATE systems SET force_refresh = false, last_seen = now()
          WHERE agent_id = $1 AND force_refresh = true
@@ -86,11 +87,26 @@ pub async fn heartbeat(
     .fetch_optional(&state.pool)
     .await?;
 
-    if refresh.is_none() {
-        let _ = sqlx::query("UPDATE systems SET last_seen = now() WHERE agent_id = $1")
+    // Update last_seen even if no refresh — but only if systems row exists
+    let last_seen: Option<(chrono::DateTime<chrono::Utc>,)> =
+        if refresh.is_none() {
+            sqlx::query_as(
+                "UPDATE systems SET last_seen = now() WHERE agent_id = $1 RETURNING last_seen"
+            )
             .bind(agent_id)
-            .execute(&state.pool)
-            .await;
+            .fetch_optional(&state.pool)
+            .await?
+        } else {
+            // refresh=true path already touched last_seen; fetch it
+            sqlx::query_as("SELECT last_seen FROM systems WHERE agent_id = $1")
+                .bind(agent_id)
+                .fetch_optional(&state.pool)
+                .await?
+        };
+
+    // Broadcast lightweight heartbeat so dashboards keep the row fresh
+    if let Some((ts,)) = last_seen {
+        let _ = state.tx.send(SystemEvent::Heartbeat { agent_id, last_seen: ts });
     }
 
     Ok(Json(json!({ "full_report": refresh.is_some() })))
@@ -271,8 +287,7 @@ pub async fn ingest(
     .await?;
 
     if let Some(SqlJson(v)) = row {
-        let _ = state.tx.send(SystemEvent {
-            kind: "ingest",
+        let _ = state.tx.send(SystemEvent::Ingest {
             agent_id,
             system: v,
         });

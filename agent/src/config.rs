@@ -2,7 +2,11 @@ use anyhow::{Context, Result};
 use serde::Deserialize;
 use std::path::PathBuf;
 
+#[cfg(target_os = "windows")]
 pub const CONFIG_DIR: &str = r"C:\ProgramData\PakMonitor";
+
+#[cfg(target_os = "linux")]
+pub const CONFIG_DIR: &str = "/etc/pak-monitor";
 
 pub fn config_path() -> PathBuf {
     PathBuf::from(CONFIG_DIR).join("agent.toml")

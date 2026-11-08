@@ -6,7 +6,7 @@ import Header from "./components/Header";
 import FilterBar from "./components/FilterBar";
 import HackTable from "./components/HackTable";
 import SystemDrawer from "./components/SystemDrawer";
-import AgentsPanel from './components/AgentsPanel'
+import AgentsPanel from "./components/AgentsPanel";
 
 const LS_KEY = "pak-monitor-api-key";
 const LS_THEME = "pak-monitor-theme";
@@ -88,6 +88,7 @@ export default function App() {
       es.onmessage = (ev) => {
         try {
           const data = JSON.parse(ev.data);
+
           if (data.kind === "ingest") {
             const s = data.system;
             setSystems((cur) => {
@@ -104,10 +105,19 @@ export default function App() {
               return c;
             });
             setFlashSet((f) => ({ ...f, [s.agent_id]: Date.now() }));
-            // refresh stats occasionally
             getStats(apiKey)
               .then(setStats)
               .catch(() => {});
+          } else if (data.kind === "heartbeat") {
+            // Just patch last_seen on the existing row — no full re-render needed
+            const { agent_id, last_seen } = data;
+            setSystems((cur) => {
+              const idx = cur.findIndex((x) => x.agent_id === agent_id);
+              if (idx === -1) return cur;
+              const copy = cur.slice();
+              copy[idx] = { ...copy[idx], last_seen };
+              return copy;
+            });
           }
         } catch (_) {
           /* ignore */
@@ -198,17 +208,23 @@ export default function App() {
   }, [systems, filter, threshold]);
 
   // recompute online/offline count from local data (SSE keeps it fresh)
-  const liveStats = useMemo(() => {
-    let online = 0,
-      offline = 0,
-      maintenance = 0;
-    systems.forEach((s) => {
-      if (s.maintenance) maintenance++;
-      else if (isStale(s.last_seen, threshold)) offline++;
-      else online++;
-    });
-    return { online, offline, maintenance, total: systems.length };
-  }, [systems, threshold]);
+const liveStats = useMemo(() => {
+  let online = 0,
+    offline = 0,
+    maintenance = 0;
+  systems.forEach((s) => {
+    if (s.maintenance) {
+      maintenance++;
+    } else if (!s.reported_at) {
+      // enrolled but never sent a full report — count as neither
+    } else if (s.live_state === "online") {
+      online++;
+    } else {
+      offline++;
+    }
+  });
+  return { online, offline, maintenance, total: systems.length };
+}, [systems]);
 
   function logout() {
     setApiKey("");
