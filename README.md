@@ -120,3 +120,11 @@ See the deployment guides for detailed platform-specific procedures:
 - Bind the server to a private interface or loopback when it is behind a reverse proxy; do not expose its application port unnecessarily.
 - Restrict access to configuration files containing database credentials, API keys, or the enrollment secret.
 - Preserve agent state during upgrades to avoid unnecessary re-enrollment.
+
+
+
+## License
+
+This project is licensed under the **GNU General Public License v3.0**.
+
+See the [LICENSE](LICENSE) file for the full text.
