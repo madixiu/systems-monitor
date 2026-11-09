@@ -13,7 +13,7 @@ export default function FilterBar({ filter, setFilter, domains, oses }) {
         type="text"
         value={filter.q}
         onChange={(e) => update('q', e.target.value)}
-        placeholder="filter _  (name / ip / domain)"
+        placeholder="filter _  (name / ip / mac / domain / user)"
         className="flex-1 bg-transparent border-b outline-none py-1 text-xs"
         style={{ borderColor: 'var(--border)', color: 'var(--fg)' }}
       />
@@ -52,18 +52,6 @@ export default function FilterBar({ filter, setFilter, domains, oses }) {
         <option value="online">online</option>
         <option value="offline">offline</option>
         <option value="maintenance">maintenance</option>
-      </select>
-
-      <select
-        value={filter.sort}
-        onChange={(e) => update('sort', e.target.value)}
-        className="bg-transparent border px-2 py-1 text-xs"
-        style={{ borderColor: 'var(--border)', color: 'var(--fg-dim)' }}
-      >
-        <option value="name">sort: name</option>
-        <option value="last_seen">sort: last seen</option>
-        <option value="disk_free">sort: disk free</option>
-        <option value="ram">sort: ram</option>
       </select>
     </div>
   )

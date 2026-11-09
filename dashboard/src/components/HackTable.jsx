@@ -4,7 +4,6 @@ import {
   diskColor,
   relTime,
   fmtDate,
-  isStale,
 } from "../lib/format";
 
 export default function HackTable({
@@ -14,7 +13,8 @@ export default function HackTable({
   calendar,
   pendingRefresh,
   flashSet,
-  threshold,
+  sort,
+  onSort,
 }) {
   if (systems.length === 0) {
     return (
@@ -41,15 +41,15 @@ export default function HackTable({
             }}
           >
             <th className="text-left px-2 py-1 font-normal w-6"></th>
-            <th className="text-left px-2 py-1 font-normal">HOSTNAME</th>
-            <th className="text-left px-2 py-1 font-normal">IP</th>
-            <th className="text-left px-2 py-1 font-normal">MAC</th>
-            <th className="text-left px-2 py-1 font-normal">USER</th>
-            <th className="text-left px-2 py-1 font-normal">OS</th>
-            <th className="text-left px-2 py-1 font-normal">CPU</th>
-            <th className="text-right px-2 py-1 font-normal">RAM</th>
-            <th className="text-right px-2 py-1 font-normal">DISK C:</th>
-            <th className="text-right px-2 py-1 font-normal">LAST SEEN</th>
+            <Th k="computer_name" sort={sort} onSort={onSort}>HOSTNAME</Th>
+            <Th k="ip" sort={sort} onSort={onSort}>IP</Th>
+            <Th k="mac" sort={sort} onSort={onSort}>MAC</Th>
+            <Th k="user" sort={sort} onSort={onSort}>USER</Th>
+            <Th k="os" sort={sort} onSort={onSort}>OS</Th>
+            <Th k="cpu" sort={sort} onSort={onSort}>CPU</Th>
+            <Th k="ram" sort={sort} onSort={onSort} align="right">RAM</Th>
+            <Th k="disk_free" sort={sort} onSort={onSort} align="right">DISK C:</Th>
+            <Th k="last_seen" sort={sort} onSort={onSort} align="right">LAST SEEN</Th>
             <th className="text-center px-2 py-1 font-normal w-8"></th>
           </tr>
         </thead>
@@ -194,6 +194,29 @@ export default function HackTable({
   );
 }
 
+function Th({ k, sort, onSort, align = "left", children }) {
+  const active = sort.key === k;
+  const cls =
+    align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left";
+
+  return (
+    <th
+      className={`${cls} px-2 py-1 font-normal select-none`}
+      style={{ cursor: "pointer" }}
+      onClick={() => onSort(k)}
+    >
+      <span style={{ color: active ? "var(--fg)" : "var(--fg-dim)" }}>
+        {children}
+        {active && (
+          <span className="ml-1" style={{ color: "var(--green)" }}>
+            {sort.dir === "asc" ? "▲" : "▼"}
+          </span>
+        )}
+      </span>
+    </th>
+  );
+}
+
 function StatusDot({ state }) {
   const color =
     state === "online"
@@ -225,3 +248,4 @@ function shortCpu(cpu) {
     .trim()
     .slice(0, 28);
 }
+

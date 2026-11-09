@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { API_URL, listSystems, getStats } from "./api";
 import { isStale } from "./lib/format";
 import KeyGate from "./components/KeyGate";
@@ -27,19 +27,20 @@ export default function App() {
   const [stats, setStats] = useState({ online: 0, offline: 0, maintenance: 0 });
   const [connected, setConnected] = useState(false);
   const [selected, setSelected] = useState(null);
-  const [threshold, setThreshold] = useState(90);
+  const [threshold] = useState(90);
   const [pendingRefresh, setPendingRefresh] = useState({});
   const [flashSet, setFlashSet] = useState({});
   const [showAgents, setShowAgents] = useState(false);
+
   const [filter, setFilter] = useState({
     q: "",
     domain: "",
     os: "",
     state: "all",
-    sort: "name",
   });
 
-  // apply theme
+  const [sort, setSort] = useState({ key: "computer_name", dir: "asc" });
+
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem(LS_THEME, theme);
@@ -49,7 +50,6 @@ export default function App() {
     localStorage.setItem(LS_CAL, calendar);
   }, [calendar]);
 
-  // initial data load
   useEffect(() => {
     if (!apiKey) return;
     localStorage.setItem(LS_KEY, apiKey);
@@ -69,7 +69,6 @@ export default function App() {
     }
   }
 
-  // SSE
   useEffect(() => {
     if (!apiKey) return;
     let es;
@@ -109,7 +108,6 @@ export default function App() {
               .then(setStats)
               .catch(() => {});
           } else if (data.kind === "heartbeat") {
-            // Just patch last_seen on the existing row — no full re-render needed
             const { agent_id, last_seen } = data;
             setSystems((cur) => {
               const idx = cur.findIndex((x) => x.agent_id === agent_id);
@@ -119,9 +117,7 @@ export default function App() {
               return copy;
             });
           }
-        } catch (_) {
-          /* ignore */
-        }
+        } catch (_) {}
       };
     }
     connect();
@@ -132,7 +128,6 @@ export default function App() {
     };
   }, [apiKey]);
 
-  // clear flash set after animation
   useEffect(() => {
     const t = setInterval(() => {
       const now = Date.now();
@@ -167,7 +162,7 @@ export default function App() {
 
   const filtered = useMemo(() => {
     const q = filter.q.trim().toLowerCase();
-    let out = systems.filter((s) => {
+    return systems.filter((s) => {
       if (q) {
         const hay = [
           s.computer_name,
@@ -196,36 +191,83 @@ export default function App() {
       }
       return true;
     });
-    const by = filter.sort;
-    out.sort((a, b) => {
-      if (by === "last_seen")
-        return new Date(b.last_seen || 0) - new Date(a.last_seen || 0);
-      if (by === "disk_free")
-        return (b.system_drive_free || 0) - (a.system_drive_free || 0);
-      if (by === "ram") return (b.ram_bytes || 0) - (a.ram_bytes || 0);
-      return (a.computer_name || "").localeCompare(b.computer_name || "");
-    });
-    return out;
   }, [systems, filter, threshold]);
 
-  // recompute online/offline count from local data (SSE keeps it fresh)
-const liveStats = useMemo(() => {
-  let online = 0,
-    offline = 0,
-    maintenance = 0;
-  systems.forEach((s) => {
-    if (s.maintenance) {
-      maintenance++;
-    } else if (!s.reported_at) {
-      // enrolled but never sent a full report — count as neither
-    } else if (s.live_state === "online") {
-      online++;
-    } else {
-      offline++;
+  const sorted = useMemo(() => {
+    const out = filtered.slice();
+    const { key, dir } = sort;
+    const mult = dir === "asc" ? 1 : -1;
+
+    function stateOf(s) {
+      if (!s.reported_at) return 2; // new
+      if (s.maintenance) return 1;
+      return s.live_state === "online" ? 0 : 3;
     }
-  });
-  return { online, offline, maintenance, total: systems.length };
-}, [systems]);
+
+    out.sort((a, b) => {
+      let av, bv;
+      switch (key) {
+        case "ip":
+          av = a.ip_addresses?.[0] || "";
+          bv = b.ip_addresses?.[0] || "";
+          break;
+        case "mac":
+          av = a.mac_addresses?.[0] || "";
+          bv = b.mac_addresses?.[0] || "";
+          break;
+        case "user":
+          av = a.console_user || "";
+          bv = b.console_user || "";
+          break;
+        case "os":
+          av = a.os_name || "";
+          bv = b.os_name || "";
+          break;
+        case "cpu":
+          av = a.cpu_model || "";
+          bv = b.cpu_model || "";
+          break;
+        case "ram":
+          av = a.ram_bytes || 0;
+          bv = b.ram_bytes || 0;
+          break;
+        case "disk_free":
+          av = a.system_drive_total
+            ? a.system_drive_free / a.system_drive_total
+            : 0;
+          bv = b.system_drive_total
+            ? b.system_drive_free / b.system_drive_total
+            : 0;
+          break;
+        case "last_seen":
+          av = a.last_seen ? Date.parse(a.last_seen) : 0;
+          bv = b.last_seen ? Date.parse(b.last_seen) : 0;
+          break;
+        case "computer_name":
+        default:
+          av = a.computer_name || "";
+          bv = b.computer_name || "";
+      }
+      if (typeof av === "string") return mult * av.localeCompare(bv);
+      return mult * (av - bv);
+    });
+
+    return out;
+  }, [filtered, sort]);
+
+  const liveStats = useMemo(() => {
+    let online = 0,
+      offline = 0,
+      maintenance = 0;
+    systems.forEach((s) => {
+      if (s.maintenance) maintenance++;
+      else if (!s.reported_at) {
+        // new
+      } else if (s.live_state === "online") online++;
+      else offline++;
+    });
+    return { online, offline, maintenance, total: systems.length };
+  }, [systems]);
 
   function logout() {
     setApiKey("");
@@ -238,13 +280,21 @@ const liveStats = useMemo(() => {
     setPendingRefresh((p) => ({ ...p, [agentId]: true }));
   }
 
-  async function afterMutation(agentId) {
+  async function afterMutation() {
     try {
       const sys = await listSystems(apiKey);
       setSystems(sys.items || []);
     } catch (e) {
       console.error(e);
     }
+  }
+
+  function handleSort(key) {
+    setSort((s) =>
+      s.key === key
+        ? { key, dir: s.dir === "asc" ? "desc" : "asc" }
+        : { key, dir: "asc" }
+    );
   }
 
   if (!apiKey) return <KeyGate onSubmit={setApiKey} />;
@@ -269,13 +319,14 @@ const liveStats = useMemo(() => {
       />
       <div className="flex-1 overflow-hidden">
         <HackTable
-          systems={filtered}
+          systems={sorted}
           selected={selected}
           onSelect={setSelected}
           calendar={calendar}
           pendingRefresh={pendingRefresh}
           flashSet={flashSet}
-          threshold={threshold}
+          sort={sort}
+          onSort={handleSort}
         />
       </div>
       <div
@@ -283,7 +334,8 @@ const liveStats = useMemo(() => {
         style={{ borderColor: "var(--border)", color: "var(--fg-mute)" }}
       >
         <span>
-          {filtered.length} / {systems.length} systems · threshold {threshold}s
+          {filtered.length} / {systems.length} systems · sort{" "}
+          {sort.key} {sort.dir === "asc" ? "▲" : "▼"}
         </span>
         <span>PAK://MONITOR v0.1</span>
       </div>
