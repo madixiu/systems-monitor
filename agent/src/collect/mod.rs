@@ -8,6 +8,11 @@ use chrono::Utc;
 use uuid::Uuid;
 
 use crate::types::{Report, SystemInfo};
+pub use console_user::current_console_user;
+
+pub fn uptime_secs() -> Result<i64> {
+    Ok((unsafe { windows::Win32::System::SystemInformation::GetTickCount64() } / 1000) as i64)
+}
 
 pub fn collect_sync(agent_id: Uuid) -> Result<Report> {
     let mut sys = SystemInfo::default();
@@ -25,8 +30,9 @@ pub fn collect_sync(agent_id: Uuid) -> Result<Report> {
         Err(e) => {
             tracing::error!("init WMI: {:#}", e);
             // Still try WTS below — it does not need COM.
-            if let Some(u) = console_user::current_console_user() {
-                sys.console_user = Some(u);
+            match current_console_user() {
+                Ok(user) => sys.console_user = user,
+                Err(e) => tracing::warn!("collect console user: {e:#}"),
             }
             return Ok(Report {
                 agent_id,
@@ -44,9 +50,12 @@ pub fn collect_sync(agent_id: Uuid) -> Result<Report> {
     try_collect!("disks",    disks::fill(&mut sys));
     try_collect!("software", software::fill(&mut sys));
 
-    // Prefer WTS (works from SYSTEM). WMI's value, if any, stays as fallback.
-    if let Some(user) = console_user::current_console_user() {
-        sys.console_user = Some(user);
+    match current_console_user() {
+        Ok(user) => sys.console_user = user,
+        Err(e) => {
+            sys.console_user = None;
+            tracing::warn!("collect console user: {e:#}");
+        }
     }
 
     Ok(Report {

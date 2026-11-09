@@ -52,7 +52,7 @@ pub async fn export(
 
 async fn fetch_rows(state: &AppState, p: &ExportParams) -> Result<Vec<SqlJson<Value>>, AppError> {
     let mut qb: QueryBuilder<Postgres> =
-        QueryBuilder::new("SELECT to_jsonb(s) FROM systems_current s WHERE 1=1");
+        QueryBuilder::new(format!("{} WHERE 1=1", crate::db::SYSTEMS_SNAPSHOT_SELECT));
     if let Some(q) = &p.q {
         let like = format!("%{}%", q);
         qb.push(" AND (s.computer_name ILIKE ");

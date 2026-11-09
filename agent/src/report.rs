@@ -45,10 +45,27 @@ impl ReportClient {
     }
 
     pub async fn heartbeat(&self, state: &State) -> Result<HeartbeatResponse> {
+        let (user, uptime) = tokio::task::spawn_blocking(|| {
+            (crate::collect::current_console_user(), crate::collect::uptime_secs())
+        }).await.context("collect heartbeat observations")?;
+        let session = match user {
+            Ok(user) => Some(json!({ "user": user })),
+            Err(error) => {
+                tracing::warn!("collect heartbeat user: {error:#}");
+                None
+            }
+        };
+        let uptime_secs = match uptime {
+            Ok(uptime) => Some(uptime),
+            Err(error) => {
+                tracing::warn!("collect heartbeat uptime: {error:#}");
+                None
+            }
+        };
         let resp = self.http
             .post(format!("{}/api/v1/agent/heartbeat", self.base))
             .bearer_auth(&state.token)
-            .json(&json!({ "agent_id": state.agent_id }))
+            .json(&json!({ "agent_id": state.agent_id, "session": session, "uptime_secs": uptime_secs }))
             .send().await
             .context("heartbeat send")?;
 

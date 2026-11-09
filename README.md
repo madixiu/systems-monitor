@@ -81,6 +81,10 @@ level = "info"
 
 Set the server URL to the address reachable by the monitored computers. Use the same enrollment secret configured on the server. Keep this secret private and do not commit it.
 
+`heartbeat_secs` is configured on each agent and controls how often it contacts the server. A forced refresh is processed on the next heartbeat, not immediately. Set the server's offline threshold above the agent heartbeat interval to allow for network delays.
+
+Agents observe uptime and console or remote sessions at each heartbeat. The dashboard retains the last user seen and marks the session as signed in, signed out, or unknown. Windows disconnected sessions are still signed in; Linux relies on sessions reported by `who`. Status is unknown when observation fails, the agent is offline, or an older agent has not sent session information. On first enrollment, status may remain unknown until the heartbeat following the first report. Changes between heartbeats may not be observed, and a user already cleared from the database cannot be recovered. Uptime is estimated from the most recent boot observation and stops advancing once the agent is offline.
+
 On Linux, build and run the agent with:
 
 ```sh
@@ -99,13 +103,17 @@ cd dashboard
 VITE_API_URL=http://127.0.0.1:8080 npm run dev
 ```
 
-In production, serve the built dashboard and route API requests through a reverse proxy to the server. Keep the dashboard and API on the same origin when practical.
+In production, set `VITE_API_URL` to the browser-accessible API origin when building the dashboard, then serve the build and route API requests through a reverse proxy to the server. Keep the dashboard and API on the same origin when practical. The current dashboard falls back to a configured default when `VITE_API_URL` is empty, so do not leave it empty for a deployment.
+
+The dashboard's event stream is a persistent connection shared by updates from all agents. It sends a keepalive comment every 15 seconds when idle; heartbeat events arrive whenever any agent reports in, so the stream's event frequency is not the heartbeat interval of a single agent.
 
 ## Deployment
 
 For production, run the server as a managed service, use PostgreSQL with appropriate backups, and place a reverse proxy in front of the API and dashboard. Bind the server to loopback when the proxy is on the same host, and configure TLS at the proxy. Restrict network access to only the required services.
 
 Install agents as managed services so they start automatically and can recover after a restart. On Windows, the included deployment script can be used with a computer startup policy to distribute agent updates. Keep the agent's local `state.json` when updating the executable or configuration; it contains the existing enrollment identity. Test updates on a small group of computers before a broad rollout.
+
+After an update, deploy the rebuilt server and dashboard and restart the server to apply any new migrations. Deploy updated agents separately; they read their heartbeat interval at startup.
 
 See the deployment guides for detailed platform-specific procedures:
 

@@ -4,6 +4,7 @@ import {
   diskColor,
   relTime,
   fmtDate,
+  userSessionStatus,
 } from "../lib/format";
 
 export default function HackTable({
@@ -80,6 +81,12 @@ export default function HackTable({
             const user = rawUser.includes("\\")
               ? rawUser.split("\\").pop()
               : rawUser || "—";
+            const session = userSessionStatus(s);
+            const sessionColor = session === "signed in"
+              ? "var(--green)"
+              : session === "signed out"
+                ? "var(--amber)"
+                : "var(--fg-mute)";
 
             return (
               <tr
@@ -136,13 +143,24 @@ export default function HackTable({
                   {mac}
                 </td>
                 <td
-                  className="px-2 py-1 truncate max-w-[140px]"
+                  className="px-2 py-1 max-w-[180px]"
                   style={{
                     color: user === "—" ? "var(--fg-mute)" : "var(--fg-dim)",
                   }}
-                  title={user}
+                  title={`${rawUser || "No user recorded"} · ${session}`}
                 >
-                  {user}
+                  <div className="flex items-center gap-2">
+                    <span className="truncate">{user}</span>
+                    <span
+                      className="shrink-0 rounded-full px-1.5 py-0.5 text-[9px] whitespace-nowrap"
+                      style={{
+                        color: sessionColor,
+                        border: `1px solid ${sessionColor}`,
+                      }}
+                    >
+                      {session === "signed in" ? "● IN" : session === "signed out" ? "○ OUT" : "?"}
+                    </span>
+                  </div>
                 </td>
                 <td
                   className="px-2 py-1 truncate max-w-[160px]"
@@ -248,4 +266,3 @@ function shortCpu(cpu) {
     .trim()
     .slice(0, 28);
 }
-

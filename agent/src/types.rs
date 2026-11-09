@@ -30,6 +30,11 @@ pub struct SystemInfo {
     pub drives: Vec<DriveInfo>,
     pub installed_software: Vec<Software>,
     pub updates: Vec<Update>,
+    // NEW HEALTH FIELDS
+    pub uptime_secs: Option<i64>,
+    pub pending_reboot: Option<bool>,
+    pub gpu_model: Option<String>,
+    pub windows_activation: Option<String>,
 }
 
 #[derive(Debug, Serialize, Default)]

@@ -15,8 +15,7 @@ pub fn run() -> Result<()> {
     init_logging();
 
     let rt = tokio::runtime::Runtime::new()?;
-    let (tx, rx) = watch::channel(false);
-    drop(tx); // no shutdown signal in simple mode — Ctrl+C or systemd stop
+    let (_tx, rx) = watch::channel(false);
 
     rt.block_on(async move {
         info!("running in foreground mode (systemd managed)");
@@ -47,16 +46,24 @@ async fn main_loop(mut shutdown_rx: watch::Receiver<bool>) -> Result<()> {
             error!("tick: {e:#}");
         }
 
-        tokio::select! {
-            _ = tokio::time::sleep(hb_dur) => {}
-            _ = shutdown_rx.changed() => {
-                if *shutdown_rx.borrow() { break; }
-            }
-        }
+        if !wait_for_next_tick(&mut shutdown_rx, hb_dur).await { break; }
     }
 
     info!("shutdown");
     Ok(())
+}
+
+async fn wait_for_next_tick(shutdown_rx: &mut watch::Receiver<bool>, interval: Duration) -> bool {
+    tokio::select! {
+        _ = tokio::time::sleep(interval) => true,
+        changed = shutdown_rx.changed() => match changed {
+            Ok(()) => !*shutdown_rx.borrow(),
+            Err(_) => {
+                error!("shutdown channel closed");
+                false
+            }
+        }
+    }
 }
 
 async fn tick(
@@ -126,4 +133,30 @@ fn init_logging() {
         )
         .with_ansi(false)
         .init();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn heartbeat_waits_for_interval() {
+        let (_tx, mut rx) = watch::channel(false);
+        assert!(tokio::time::timeout(
+            Duration::from_millis(20),
+            wait_for_next_tick(&mut rx, Duration::from_millis(100)),
+        ).await.is_err());
+        assert!(wait_for_next_tick(&mut rx, Duration::from_millis(1)).await);
+    }
+
+    #[tokio::test]
+    async fn shutdown_or_closed_channel_stops_the_loop() {
+        let (tx, mut rx) = watch::channel(false);
+        tx.send(true).unwrap();
+        assert!(!wait_for_next_tick(&mut rx, Duration::from_secs(60)).await);
+
+        let (tx, mut rx) = watch::channel(false);
+        drop(tx);
+        assert!(!wait_for_next_tick(&mut rx, Duration::from_secs(60)).await);
+    }
 }

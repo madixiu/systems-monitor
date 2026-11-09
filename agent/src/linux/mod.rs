@@ -8,6 +8,7 @@ use chrono::Utc;
 use uuid::Uuid;
 
 use crate::types::{Report, SystemInfo};
+pub use system::{current_console_user, uptime_secs};
 
 pub fn collect_sync(agent_id: Uuid) -> Result<Report> {
     let mut sys = SystemInfo::default();

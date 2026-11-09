@@ -1,6 +1,8 @@
 use anyhow::{Context, Result};
 use serde::Deserialize;
 use wmi::{COMLibrary, WMIConnection};
+use winreg::enums::*;
+use winreg::RegKey;
 
 use crate::types::{SystemInfo, Update};
 
@@ -143,6 +145,57 @@ pub fn fill_system(wmi: &WMIConnection, sys: &mut SystemInfo) -> Result<()> {
 
     let disks: Vec<DiskRow> = wmi.raw_query("SELECT Size FROM Win32_DiskDrive")?;
     sys.physical_disk_bytes = disks.iter().filter_map(|d| d.size).sum();
+
+     // --- NEW HEALTH CHECKS ---
+
+    // Uptime (using Win32 GetTickCount64)
+    unsafe {
+        let tick_count = windows::Win32::System::SystemInformation::GetTickCount64();
+        sys.uptime_secs = Some((tick_count / 1000) as i64);
+    }
+
+    // Pending Reboot (Registry check)
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    let mut pending = false;
+    if hklm.open_subkey(r"SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending").is_ok() {
+        pending = true;
+    }
+    if hklm.open_subkey(r"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired").is_ok() {
+        pending = true;
+    }
+    sys.pending_reboot = Some(pending);
+
+    // GPU Model (Note: raw_query::<GpuRow> already returns Vec<GpuRow>)
+    #[derive(Debug, Deserialize)]
+    struct GpuRow { #[serde(rename = "Name")] name: Option<String> }
+    if let Ok(gpus) = wmi.raw_query::<GpuRow>("SELECT Name FROM Win32_VideoController") {
+        let names: Vec<String> = gpus.into_iter().filter_map(|g| g.name).collect();
+        if !names.is_empty() {
+            sys.gpu_model = Some(names.join(", "));
+        }
+    }
+
+    // Windows Activation
+    #[derive(Debug, Deserialize)]
+    struct LicRow { #[serde(rename = "LicenseStatus")] status: Option<u32> }
+    if let Ok(lics) = wmi.raw_query::<LicRow>(
+        "SELECT LicenseStatus FROM SoftwareLicensingProduct WHERE ApplicationID = '55c92734-d682-4d71-983e-d6ec3f16059f' AND PartialProductKey IS NOT NULL"
+    ) {
+        if let Some(lic) = lics.first() {
+            if let Some(code) = lic.status {
+                sys.windows_activation = Some(match code {
+                    0 => "Unlicensed".into(),
+                    1 => "Activated".into(),
+                    2 => "Out-of-Box Grace".into(),
+                    3 => "Out-of-Tolerance Grace".into(),
+                    4 => "Non-Genuine Grace".into(),
+                    5 => "Notification".into(),
+                    6 => "Extended Grace".into(),
+                    _ => format!("Unknown ({})", code),
+                });
+            }
+        }
+    }
 
     Ok(())
 }

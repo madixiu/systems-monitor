@@ -5,6 +5,12 @@ use sqlx::PgPool;
 
 use crate::auth::{generate_token, hash_token};
 
+pub const SYSTEMS_SNAPSHOT_SELECT: &str =
+    "SELECT to_jsonb(t) || jsonb_build_object('live_state', s.live_state, \
+     'offline_threshold', s.offline_threshold, \
+     'offline_threshold_secs', EXTRACT(EPOCH FROM s.offline_threshold)) \
+     FROM systems_current s JOIN systems t ON t.agent_id = s.agent_id";
+
 pub async fn connect(database_url: &str) -> Result<PgPool> {
     Ok(PgPoolOptions::new()
         .max_connections(20)

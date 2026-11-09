@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { API_URL, listSystems, getStats } from "./api";
-import { isStale } from "./lib/format";
+import { currentLiveState } from "./lib/format";
 import KeyGate from "./components/KeyGate";
 import Header from "./components/Header";
 import FilterBar from "./components/FilterBar";
@@ -27,7 +27,7 @@ export default function App() {
   const [stats, setStats] = useState({ online: 0, offline: 0, maintenance: 0 });
   const [connected, setConnected] = useState(false);
   const [selected, setSelected] = useState(null);
-  const [threshold] = useState(90);
+  const [now, setNow] = useState(() => Date.now());
   const [pendingRefresh, setPendingRefresh] = useState({});
   const [flashSet, setFlashSet] = useState({});
   const [showAgents, setShowAgents] = useState(false);
@@ -108,12 +108,17 @@ export default function App() {
               .then(setStats)
               .catch(() => {});
           } else if (data.kind === "heartbeat") {
-            const { agent_id, last_seen } = data;
+            const { agent_id, last_seen, console_user, console_user_logged_in, uptime_secs, last_boot } = data;
             setSystems((cur) => {
               const idx = cur.findIndex((x) => x.agent_id === agent_id);
               if (idx === -1) return cur;
               const copy = cur.slice();
-              copy[idx] = { ...copy[idx], last_seen };
+              copy[idx] = {
+                ...copy[idx], last_seen,
+                ...(Object.hasOwn(data, "console_user_logged_in") && {
+                  console_user, console_user_logged_in, uptime_secs, last_boot,
+                }),
+              };
               return copy;
             });
           }
@@ -144,6 +149,16 @@ export default function App() {
     return () => clearInterval(t);
   }, []);
 
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 10000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const currentSystems = useMemo(() => systems.map((system) => ({
+    ...system,
+    live_state: currentLiveState(system, now),
+  })), [systems, now]);
+
   const domains = useMemo(() => {
     const s = new Set();
     systems.forEach((x) => {
@@ -162,7 +177,7 @@ export default function App() {
 
   const filtered = useMemo(() => {
     const q = filter.q.trim().toLowerCase();
-    return systems.filter((s) => {
+    return currentSystems.filter((s) => {
       if (q) {
         const hay = [
           s.computer_name,
@@ -182,16 +197,16 @@ export default function App() {
         if (filter.state === "maintenance" && !s.maintenance) return false;
         if (filter.state === "online") {
           if (s.maintenance) return false;
-          if (isStale(s.last_seen, threshold)) return false;
+          if (s.live_state !== "online") return false;
         }
         if (filter.state === "offline") {
           if (s.maintenance) return false;
-          if (!isStale(s.last_seen, threshold)) return false;
+          if (s.live_state !== "offline") return false;
         }
       }
       return true;
     });
-  }, [systems, filter, threshold]);
+  }, [currentSystems, filter]);
 
   const sorted = useMemo(() => {
     const out = filtered.slice();
@@ -259,15 +274,15 @@ export default function App() {
     let online = 0,
       offline = 0,
       maintenance = 0;
-    systems.forEach((s) => {
+    currentSystems.forEach((s) => {
       if (s.maintenance) maintenance++;
       else if (!s.reported_at) {
         // new
       } else if (s.live_state === "online") online++;
       else offline++;
     });
-    return { online, offline, maintenance, total: systems.length };
-  }, [systems]);
+    return { online, offline, maintenance, total: currentSystems.length };
+  }, [currentSystems]);
 
   function logout() {
     setApiKey("");
@@ -341,6 +356,7 @@ export default function App() {
       </div>
       <SystemDrawer
         agentId={selected}
+        system={currentSystems.find((system) => system.agent_id === selected) || null}
         apiKey={apiKey}
         onClose={() => setSelected(null)}
         calendar={calendar}

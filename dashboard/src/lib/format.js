@@ -69,3 +69,38 @@ export function isStale(iso, thresholdSecs = 90) {
   if (isNaN(d.getTime())) return true
   return Date.now() - d.getTime() > thresholdSecs * 1000
 }
+
+export function currentLiveState(system, now = Date.now()) {
+  if (system.maintenance) return 'maintenance'
+  if (!system.last_seen) return 'never'
+  const seen = Date.parse(system.last_seen)
+  if (!Number.isFinite(seen) || typeof system.offline_threshold_secs !== 'number') {
+    return system.live_state
+  }
+  return now - seen > system.offline_threshold_secs * 1000 ? 'offline' : 'online'
+}
+
+export function isObservationFresh(system, now = Date.now()) {
+  const seen = Date.parse(system.last_seen)
+  if (Number.isFinite(seen) && typeof system.offline_threshold_secs === 'number') {
+    return now - seen <= system.offline_threshold_secs * 1000
+  }
+  return system.live_state === 'online'
+}
+
+export function userSessionStatus(system, now = Date.now()) {
+  if (!isObservationFresh(system, now) || system.console_user_logged_in == null) return 'unknown'
+  return system.console_user_logged_in ? 'signed in' : 'signed out'
+}
+
+export function fmtUptime(system, now = Date.now()) {
+  const boot = Date.parse(system.last_boot)
+  const seen = Date.parse(system.last_seen)
+  const end = isObservationFresh(system, now) ? now : seen
+  let seconds = system.uptime_secs
+  if (Number.isFinite(boot) && Number.isFinite(end) && end >= boot) {
+    seconds = Math.floor((end - boot) / 1000)
+  }
+  if (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds < 0) return '—'
+  return `${Math.floor(seconds / 86400)}d ${Math.floor((seconds % 86400) / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`
+}

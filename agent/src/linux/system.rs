@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::fs;
 use sysinfo::System;
 
@@ -24,7 +24,10 @@ pub fn fill(sys: &mut SystemInfo) -> Result<()> {
     }
 
     sys.platform = "Linux".to_string();
-    sys.console_user = who_user();
+    match current_console_user() {
+        Ok(user) => sys.console_user = user,
+        Err(e) => tracing::warn!("collect console user: {e:#}"),
+    }
 
     // OS
     if let Ok(release) = fs::read_to_string("/etc/os-release") {
@@ -79,21 +82,53 @@ pub fn fill(sys: &mut SystemInfo) -> Result<()> {
         sys.physical_disk_bytes = total;
     }
 
-    Ok(())
-}
-
-fn who_user() -> Option<String> {
-    let out = std::process::Command::new("who").output().ok()?;
-    let s = String::from_utf8_lossy(&out.stdout);
-    for line in s.lines() {
-        let mut parts = line.split_whitespace();
-        if let Some(user) = parts.next() {
-            if !user.is_empty() {
-                return Some(user.to_string());
+        // --- NEW HEALTH CHECKS ---
+    
+    // Uptime
+    if let Ok(uptime_str) = fs::read_to_string("/proc/uptime") {
+        if let Some(secs_str) = uptime_str.split_whitespace().next() {
+            if let Ok(secs) = secs_str.parse::<f64>() {
+                sys.uptime_secs = Some(secs as i64);
             }
         }
     }
-    None
+
+    // Pending Reboot
+    let reboot_req = std::path::Path::new("/var/run/reboot-required").exists()
+        || std::path::Path::new("/run/reboot-required").exists();
+    sys.pending_reboot = Some(reboot_req);
+
+    // GPU Model
+    if let Ok(out) = std::process::Command::new("lspci").output() {
+        let s = String::from_utf8_lossy(&out.stdout);
+        for line in s.lines() {
+            if line.contains("VGA compatible controller") || line.contains("3D controller") {
+                if let Some(pos) = line.find(": ") {
+                    sys.gpu_model = Some(line[pos + 2..].to_string());
+                    break;
+                }
+            }
+        }
+    }
+    // Windows Activation (not applicable)
+    sys.windows_activation = None;
+
+    Ok(())
+}
+
+pub fn current_console_user() -> Result<Option<String>> {
+    let out = std::process::Command::new("who").output().context("run who")?;
+    anyhow::ensure!(out.status.success(), "who failed: {}", String::from_utf8_lossy(&out.stderr));
+    let output = std::str::from_utf8(&out.stdout).context("decode who output")?;
+    Ok(output.lines().find_map(|line| line.split_whitespace().next()).map(str::to_owned))
+}
+
+pub fn uptime_secs() -> Result<i64> {
+    let uptime = fs::read_to_string("/proc/uptime").context("read uptime")?;
+    let seconds = uptime.split_whitespace().next().context("missing uptime")?;
+    let seconds: f64 = seconds.parse().context("parse uptime")?;
+    anyhow::ensure!(seconds.is_finite() && seconds >= 0.0 && seconds < i64::MAX as f64, "invalid uptime");
+    Ok(seconds as i64)
 }
 
 fn detect_vm(product: &str, vendor: &str) -> String {

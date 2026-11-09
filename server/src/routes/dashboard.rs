@@ -34,7 +34,7 @@ pub async fn list(
     let offset = p.offset.unwrap_or(0).max(0);
 
     let mut qb: QueryBuilder<Postgres> =
-        QueryBuilder::new("SELECT to_jsonb(s) FROM systems_current s WHERE 1=1");
+        QueryBuilder::new(format!("{} WHERE 1=1", crate::db::SYSTEMS_SNAPSHOT_SELECT));
 
     if let Some(q) = &p.q {
         let like = format!("%{}%", q);
@@ -84,7 +84,7 @@ pub async fn get_one(
     Path(agent_id): Path<Uuid>,
 ) -> Result<Json<Value>, AppError> {
     let row: Option<SqlJson<Value>> = sqlx::query_scalar(
-        "SELECT to_jsonb(s) FROM systems_current s WHERE agent_id = $1"
+        &format!("{} WHERE s.agent_id = $1", crate::db::SYSTEMS_SNAPSHOT_SELECT)
     )
     .bind(agent_id)
     .fetch_optional(&state.pool)

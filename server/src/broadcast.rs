@@ -14,5 +14,9 @@ pub enum SystemEvent {
     Heartbeat {
         agent_id: Uuid,
         last_seen: chrono::DateTime<chrono::Utc>,
+        console_user: Option<String>,
+        console_user_logged_in: Option<bool>,
+        uptime_secs: Option<i64>,
+        last_boot: Option<chrono::DateTime<chrono::Utc>>,
     },
 }
