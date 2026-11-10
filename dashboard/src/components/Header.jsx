@@ -75,7 +75,7 @@ export default function Header({
       <div className="flex items-center gap-2">
         <button
           onClick={onShowAgents}
-          className="text-xs px-2 py-1 border hover:opacity-80"
+          className="text-xs px-2 py-3 border hover:opacity-80 cursor-pointer"
           style={{
             borderColor: "var(--border-bright)",
             color: "var(--fg-dim)",
@@ -88,7 +88,7 @@ export default function Header({
           onClick={() =>
             setCalendar(calendar === "gregorian" ? "jalali" : "gregorian")
           }
-          className="text-xs px-2 py-1 border hover:opacity-80"
+          className="text-xs px-2 py-3 border hover:opacity-80 cursor-pointer"
           style={{
             borderColor: "var(--border-bright)",
             color: "var(--fg-dim)",
@@ -99,7 +99,7 @@ export default function Header({
         </button>
         <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="text-xs px-2 py-1 border hover:opacity-80"
+          className="text-2xl px-3 py-1 border hover:opacity-80 cursor-pointer"
           style={{
             borderColor: "var(--border-bright)",
             color: "var(--fg-dim)",
@@ -110,7 +110,7 @@ export default function Header({
         </button>
         <button
           onClick={onLogout}
-          className="text-xs px-2 py-1 border hover:opacity-80"
+          className="text-2xl px-3 py-1 border hover:opacity-80 cursor-pointer"
           style={{
             borderColor: "var(--border-bright)",
             color: "var(--fg-mute)",

@@ -42,15 +42,33 @@ export default function HackTable({
             }}
           >
             <th className="text-left px-2 py-1 font-normal w-6"></th>
-            <Th k="computer_name" sort={sort} onSort={onSort}>HOSTNAME</Th>
-            <Th k="ip" sort={sort} onSort={onSort}>IP</Th>
-            <Th k="mac" sort={sort} onSort={onSort}>MAC</Th>
-            <Th k="user" sort={sort} onSort={onSort}>USER</Th>
-            <Th k="os" sort={sort} onSort={onSort}>OS</Th>
-            <Th k="cpu" sort={sort} onSort={onSort}>CPU</Th>
-            <Th k="ram" sort={sort} onSort={onSort} align="right">RAM</Th>
-            <Th k="disk_free" sort={sort} onSort={onSort} align="right">DISK C:</Th>
-            <Th k="last_seen" sort={sort} onSort={onSort} align="right">LAST SEEN</Th>
+            <Th k="computer_name" sort={sort} onSort={onSort}>
+              HOSTNAME
+            </Th>
+            <Th k="ip" sort={sort} onSort={onSort}>
+              IP
+            </Th>
+            <Th k="mac" sort={sort} onSort={onSort}>
+              MAC
+            </Th>
+            <Th k="user" sort={sort} onSort={onSort}>
+              USER
+            </Th>
+            <Th k="os" sort={sort} onSort={onSort}>
+              OS
+            </Th>
+            <Th k="cpu" sort={sort} onSort={onSort}>
+              CPU
+            </Th>
+            <Th k="ram" sort={sort} onSort={onSort} align="right">
+              RAM
+            </Th>
+            <Th k="disk_free" sort={sort} onSort={onSort} align="right">
+              DISK C:
+            </Th>
+            <Th k="last_seen" sort={sort} onSort={onSort} align="right">
+              LAST SEEN
+            </Th>
             <th className="text-center px-2 py-1 font-normal w-8"></th>
           </tr>
         </thead>
@@ -82,11 +100,11 @@ export default function HackTable({
               ? rawUser.split("\\").pop()
               : rawUser || "—";
             const session = userSessionStatus(s);
-            const sessionColor = session === "signed in"
-              ? "var(--green)"
-              : session === "signed out"
-                ? "var(--amber)"
-                : "var(--fg-mute)";
+            // const sessionColor = session === "signed in"
+            //   ? "var(--green)"
+            //   : session === "signed out"
+            //     ? "var(--amber)"
+            //     : "var(--fg-mute)";
 
             return (
               <tr
@@ -119,7 +137,7 @@ export default function HackTable({
                   <StatusDot state={state} />
                 </td>
                 <td
-                  className="px-2 py-1 glow-soft truncate max-w-[180px]"
+                  className="px-2 py-1 glow-soft truncate max-w-45"
                   title={s.fqdn}
                 >
                   {s.computer_name}
@@ -143,27 +161,19 @@ export default function HackTable({
                   {mac}
                 </td>
                 <td
-                  className="px-2 py-1 max-w-[180px]"
+                  className="px-2 py-1 max-w-45"
                   style={{
                     color: user === "—" ? "var(--fg-mute)" : "var(--fg-dim)",
                   }}
                   title={`${rawUser || "No user recorded"} · ${session}`}
                 >
                   <div className="flex items-center gap-2">
+                    <SessionDot session={session} />
                     <span className="truncate">{user}</span>
-                    <span
-                      className="shrink-0 rounded-full px-1.5 py-0.5 text-[9px] whitespace-nowrap"
-                      style={{
-                        color: sessionColor,
-                        border: `1px solid ${sessionColor}`,
-                      }}
-                    >
-                      {session === "signed in" ? "● IN" : session === "signed out" ? "○ OUT" : "?"}
-                    </span>
                   </div>
                 </td>
                 <td
-                  className="px-2 py-1 truncate max-w-[160px]"
+                  className="px-2 py-1 truncate max-w-40"
                   style={{ color: "var(--fg-dim)" }}
                   title={s.os_name}
                 >
@@ -171,7 +181,7 @@ export default function HackTable({
                   <span style={{ color: "var(--fg-mute)" }}>{s.os_build}</span>
                 </td>
                 <td
-                  className="px-2 py-1 truncate max-w-[160px]"
+                  className="px-2 py-1 truncate max-w-40"
                   style={{ color: "var(--fg-dim)" }}
                   title={s.cpu_model}
                 >
@@ -198,7 +208,7 @@ export default function HackTable({
                 </td>
                 <td className="px-2 py-1 text-center">
                   {isPending && (
-                    <span className="blink" style={{ color: "var(--amber)" }}>
+                    <span className="blink text-lg" style={{ color: "var(--amber)" }}>
                       ↻
                     </span>
                   )}
@@ -215,7 +225,11 @@ export default function HackTable({
 function Th({ k, sort, onSort, align = "left", children }) {
   const active = sort.key === k;
   const cls =
-    align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left";
+    align === "right"
+      ? "text-right"
+      : align === "center"
+        ? "text-center"
+        : "text-left";
 
   return (
     <th
@@ -257,7 +271,28 @@ function StatusDot({ state }) {
     />
   );
 }
-
+function SessionDot({ session }) {
+  const color =
+    session === "signed in"
+      ? "var(--green)"
+      : session === "signed out"
+        ? "var(--red)"
+        : "var(--fg-mute)";
+  return (
+    <span
+      title={session}
+      style={{
+        display: "inline-block",
+        width: 6,
+        height: 6,
+        borderRadius: "50%",
+        background: color,
+        boxShadow: session === "signed in" ? "0 0 5px " + color : "none",
+        flexShrink: 0,
+      }}
+    />
+  );
+}
 function shortCpu(cpu) {
   if (!cpu) return "—";
   return cpu
