@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import PakLogo from "./PakLogo";
 
 export default function Header({
   stats,
@@ -29,7 +30,8 @@ export default function Header({
       className="flex items-center gap-4 px-4 py-2 border-b"
       style={{ borderColor: "var(--border)", background: "var(--bg-panel)" }}
     >
-      <div className="font-bold glow text-base whitespace-nowrap">
+      <div className="font-bold glow text-base whitespace-nowrap flex items-center gap-2">
+        <PakLogo size={20} />
         PAK://MONITOR
       </div>
 

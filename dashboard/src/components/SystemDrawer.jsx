@@ -104,7 +104,7 @@ export default function SystemDrawer({
       <div
         className="fixed top-0 right-0 bottom-0 z-50 flex flex-col border-l overflow-hidden"
         style={{
-          width: "min(560px, 100vw)",
+          width: "min(700px, 100vw)",
           background: "var(--bg-panel)",
           borderColor: "var(--border-bright)",
         }}
@@ -378,7 +378,7 @@ export function PeripheralInventory({ peripherals }) {
   const printers = peripherals?.printers;
   const kinds = [
     ["monitor", "Monitors", Monitor],
-    ["imaging", "Imaging devices (scanners/cameras)", ImageIcon],
+    ["imaging", "Scanners/Cameras", ImageIcon],
   ];
 
   return (
