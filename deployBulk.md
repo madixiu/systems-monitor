@@ -32,15 +32,15 @@ Notes:
 ## 1.2 Create Service
 ```bash
 wmiexec.py "$DOMAIN/$USER_NAME:$PASS@$TARGET" \
-  'sc.exe create PakMonitor binPath= "C:\ProgramData\PakMonitor\pak-monitor-agent.exe" start= auto DisplayName= "PAK Monitor Agent"'
+  'sc.exe create PakMonitorAgent binPath= "C:\ProgramData\PakMonitor\pak-monitor-agent.exe" start= auto DisplayName= "PAK Monitor Agent"'
 ```
 ## 2. Service status
 
 Your service was created with the correct path, so you only need to start it:
 
 ```bash
-wmiexec.py "$DOMAIN/$USER_NAME:$PASS@$TARGET" 'sc.exe start PakMonitor'
-wmiexec.py "$DOMAIN/$USER_NAME:$PASS@$TARGET" 'sc.exe query PakMonitor'
+wmiexec.py "$DOMAIN/$USER_NAME:$PASS@$TARGET" 'sc.exe start PakMonitorAgent'
+wmiexec.py "$DOMAIN/$USER_NAME:$PASS@$TARGET" 'sc.exe query PakMonitorAgent'
 ```
 
 If you want the computer name in the service name, as in the earlier loop, create it again as `PakMonitor-PA140317`. Keep the same binary path.

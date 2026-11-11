@@ -27,16 +27,39 @@ import {
   Image as ImageIcon
 } from "lucide-react";
 
-// --- COPY TEXT COMPONENT ---
+// --- COPY TEXT COMPONENT (WITH HTTP FALLBACK) ---
 function CopyText({ text, children }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async (e) => {
     e.stopPropagation(); // Prevent triggering row clicks or closing drawer
+    
     try {
-      await navigator.clipboard.writeText(text);
+      // 1. Try the modern API first (works on HTTPS and localhost)
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        // 2. Fallback for HTTP (insecure context)
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        // Move it off-screen so the user doesn't see it flash
+        textArea.style.position = "absolute";
+        textArea.style.left = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.select();
+        
+        try {
+          document.execCommand("copy");
+        } catch (err) {
+          console.error("Fallback copy failed", err);
+        }
+        
+        textArea.remove();
+      }
+      
+      // 3. Trigger the animation
       setCopied(true);
-      setTimeout(() => setCopied(false), 350); // Reset animation
+      setTimeout(() => setCopied(false), 350);
     } catch (err) {
       console.error("Failed to copy", err);
     }
@@ -52,7 +75,6 @@ function CopyText({ text, children }) {
     </span>
   );
 }
-
 export default function SystemDrawer({
   agentId,
   system: sys,
