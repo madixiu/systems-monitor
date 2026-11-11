@@ -499,7 +499,7 @@ function Row({ icon: Icon, label, value, mono, copy = false }) {
         {Icon && <Icon size={14} className="opacity-70 group-hover:opacity-100 group-hover:text-cyan-400 transition-colors" />}
         <span>{label}</span>
       </div>
-      <div className={`flex-1 break-all text-[var(--fg)] ${mono ? "font-mono" : ""}`}>
+      <div className={`flex-1 break-all text-(--fg) ${mono ? "font-mono" : ""}`}>
         {content}
       </div>
     </div>
