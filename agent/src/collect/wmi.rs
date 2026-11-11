@@ -1,10 +1,49 @@
 use anyhow::{Context, Result};
+use chrono::{DateTime, Utc};
 use serde::Deserialize;
+use std::sync::OnceLock;
 use wmi::{COMLibrary, WMIConnection};
 use winreg::enums::*;
 use winreg::RegKey;
 
 use crate::types::{SystemInfo, Update};
+
+/// Seconds since the last cold boot. Fast Startup resumes don't reset it, so a
+/// shutdown that was hibernated is still visible. Falls back to the kernel tick
+/// count when the boot event can't be read.
+pub fn real_uptime_secs() -> i64 {
+    let tick = (unsafe { windows::Win32::System::SystemInformation::GetTickCount64() } / 1000) as i64;
+    last_cold_boot()
+        .map(|boot| (Utc::now() - boot).num_seconds().clamp(0, tick))
+        .unwrap_or(tick)
+}
+
+fn last_cold_boot() -> Option<DateTime<Utc>> {
+    static BOOT: OnceLock<Option<DateTime<Utc>>> = OnceLock::new();
+    *BOOT.get_or_init(read_last_cold_boot)
+}
+
+/// Kernel-General Event 12 is written only on a full boot, not on a Fast Startup resume.
+fn read_last_cold_boot() -> Option<DateTime<Utc>> {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+
+    let out = std::process::Command::new("wevtutil")
+        .args(["qe", "System", "/q:*[System[(EventID=12)]]", "/c:1", "/rd:true", "/f:xml"])
+        .creation_flags(CREATE_NO_WINDOW)
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let xml = String::from_utf8_lossy(&out.stdout);
+    let attr = "SystemTime='";
+    let start = xml.find(attr)? + attr.len();
+    let end = xml[start..].find('\'')?;
+    DateTime::parse_from_rfc3339(&xml[start..start + end])
+        .ok()
+        .map(|t| t.with_timezone(&Utc))
+}
 
 /// Owns the WMI connection. `COMLibrary` is moved into `WMIConnection`
 /// (it keeps the COM apartment alive internally), so we only store the
@@ -36,6 +75,7 @@ struct CsRow {
     #[serde(rename = "UserName")] user: Option<String>,
     #[serde(rename = "Manufacturer")] manufacturer: Option<String>,
     #[serde(rename = "Model")] model: Option<String>,
+    #[serde(rename = "TotalPhysicalMemory")] total_memory: Option<u64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -51,11 +91,6 @@ struct CpuRow {
     #[serde(rename = "Name")] name: Option<String>,
     #[serde(rename = "NumberOfCores")] cores: Option<u32>,
     #[serde(rename = "NumberOfLogicalProcessors")] logical: Option<u32>,
-}
-
-#[derive(Debug, Deserialize)]
-struct MemRow {
-    #[serde(rename = "TotalPhysicalMemory")] total: Option<u64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -86,24 +121,25 @@ struct QfeRow {
 
 pub fn fill_system(wmi: &WMIConnection, sys: &mut SystemInfo) -> Result<()> {
     let cs: Vec<CsRow> = wmi.raw_query(
-        "SELECT Name, Domain, Workgroup, UserName, Manufacturer, Model FROM Win32_ComputerSystem"
+        "SELECT Name, Domain, Workgroup, UserName, Manufacturer, Model, TotalPhysicalMemory FROM Win32_ComputerSystem"
     )?;
     if let Some(cs) = cs.into_iter().next() {
-        let name = cs.name.clone().unwrap_or_default();
-        let domain = cs.domain.clone()
+        sys.ram_bytes = cs.total_memory.unwrap_or(0);
+        let name = cs.name.unwrap_or_default();
+        let domain = cs.domain
             .filter(|d| !d.eq_ignore_ascii_case("WORKGROUP"))
             .unwrap_or_default();
 
         sys.computer_name = name.clone();
-        sys.domain = if domain.is_empty() {
-            cs.workgroup.clone().unwrap_or_default()
-        } else {
-            domain.clone()
-        };
         sys.fqdn = if domain.is_empty() {
             name
         } else {
             format!("{}.{}", name, domain)
+        };
+        sys.domain = if domain.is_empty() {
+            cs.workgroup.unwrap_or_default()
+        } else {
+            domain
         };
         sys.platform = "Windows".to_string();
         sys.console_user = cs.user.filter(|u| !u.is_empty());
@@ -129,12 +165,6 @@ pub fn fill_system(wmi: &WMIConnection, sys: &mut SystemInfo) -> Result<()> {
         sys.cpu_cores = cpu.cores.or(cpu.logical).unwrap_or(0);
     }
 
-    let mem: Vec<MemRow> =
-        wmi.raw_query("SELECT TotalPhysicalMemory FROM Win32_ComputerSystem")?;
-    if let Some(m) = mem.into_iter().next() {
-        sys.ram_bytes = m.total.unwrap_or(0);
-    }
-
     let board: Vec<BoardRow> =
         wmi.raw_query("SELECT Manufacturer, Product FROM Win32_BaseBoard")?;
     if let Some(b) = board.into_iter().next() {
@@ -148,24 +178,26 @@ pub fn fill_system(wmi: &WMIConnection, sys: &mut SystemInfo) -> Result<()> {
 
      // --- NEW HEALTH CHECKS ---
 
-    // Uptime (using Win32 GetTickCount64)
-    unsafe {
-        let tick_count = windows::Win32::System::SystemInformation::GetTickCount64();
-        sys.uptime_secs = Some((tick_count / 1000) as i64);
-    }
+    // Uptime since last cold boot (Fast Startup-aware)
+    sys.uptime_secs = Some(real_uptime_secs());
 
-    // Pending Reboot (Registry check)
+    // Pending Reboot: CBS, Windows Update, and pending file renames
     let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-    let mut pending = false;
-    if hklm.open_subkey(r"SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending").is_ok() {
-        pending = true;
-    }
-    if hklm.open_subkey(r"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired").is_ok() {
-        pending = true;
-    }
-    sys.pending_reboot = Some(pending);
+    let cbs_pending = hklm
+        .open_subkey(r"SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending")
+        .is_ok();
+    let wu_pending = hklm
+        .open_subkey(r"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired")
+        .is_ok();
+    // REG_MULTI_SZ; present and non-empty means a file rename is queued for reboot
+    let rename_pending = hklm
+        .open_subkey(r"SYSTEM\CurrentControlSet\Control\Session Manager")
+        .and_then(|k| k.get_value::<Vec<String>, _>("PendingFileRenameOperations"))
+        .map(|v| !v.is_empty())
+        .unwrap_or(false);
+    sys.pending_reboot = Some(cbs_pending || wu_pending || rename_pending);
 
-    // GPU Model (Note: raw_query::<GpuRow> already returns Vec<GpuRow>)
+    // GPU Model
     #[derive(Debug, Deserialize)]
     struct GpuRow { #[serde(rename = "Name")] name: Option<String> }
     if let Ok(gpus) = wmi.raw_query::<GpuRow>("SELECT Name FROM Win32_VideoController") {

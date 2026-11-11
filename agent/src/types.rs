@@ -35,6 +35,35 @@ pub struct SystemInfo {
     pub pending_reboot: Option<bool>,
     pub gpu_model: Option<String>,
     pub windows_activation: Option<String>,
+    pub peripherals: Option<PeripheralInventory>,
+}
+
+#[derive(Debug, Serialize, Default)]
+pub struct PeripheralInventory {
+    pub printers: Option<Vec<PrinterInfo>>,
+    pub devices: Option<Vec<PeripheralDevice>>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PrinterInfo {
+    pub name: String,
+    pub driver: Option<String>,
+    pub port: Option<String>,
+    pub server: Option<String>,
+    pub network: Option<bool>,
+    pub shared: Option<bool>,
+    pub status: Option<u16>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PeripheralDevice {
+    pub kind: String,
+    pub name: String,
+    pub manufacturer: Option<String>,
+    pub device_id: Option<String>,
+    pub status: Option<String>,
+    pub serial: Option<String>,
+    pub resolution: Option<String>,
 }
 
 #[derive(Debug, Serialize, Default)]

@@ -8,7 +8,10 @@ import { currentLiveState, fmtUptime, userSessionStatus } from '../src/lib/forma
 const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' })
 after(() => vite.close())
 const { default: SystemDrawer } = await vite.ssrLoadModule('/src/components/SystemDrawer.jsx')
+const { PeripheralInventory } = await vite.ssrLoadModule('/src/components/SystemDrawer.jsx')
 const { default: HackTable } = await vite.ssrLoadModule('/src/components/HackTable.jsx')
+const { default: FilterBar } = await vite.ssrLoadModule('/src/components/FilterBar.jsx')
+const { listSystems } = await vite.ssrLoadModule('/src/api.js')
 
 function renderSystem(system) {
   return renderToStaticMarkup(createElement(SystemDrawer, {
@@ -18,6 +21,56 @@ function renderSystem(system) {
     calendar: 'gregorian',
   }))
 }
+
+test('shows peripheral inventory and distinguishes unavailable from empty', () => {
+  function render(peripherals) {
+    return renderToStaticMarkup(createElement(PeripheralInventory, { peripherals }))
+  }
+  assert.match(render(null), /Inventory unavailable/)
+  const partial = render({ printers: null, devices: [] })
+  assert.match(partial, /Unavailable/)
+  assert.match(partial, /None reported/)
+  const html = render({
+    printers: [{ name: 'Shared printer', network: true, server: '\\\\print-server', port: 'IP_1' }],
+    devices: [
+      { kind: 'monitor', name: 'Display', resolution: '2560x1440' },
+      { kind: 'imaging', name: 'Scanner' },
+    ],
+  })
+  for (const value of ['Shared printer', 'print-server', 'network', 'Display', 'Scanner', '2560x1440']) {
+    assert.ok(html.includes(value))
+  }
+  assert.match(html, /availability is not verified/)
+})
+
+test('exposes peripheral type and name filters', () => {
+  const html = renderToStaticMarkup(createElement(FilterBar, {
+    filter: { q: '', domain: '', os: '', state: 'all', peripheralKind: 'printer', peripheralName: 'HP' },
+    setFilter: () => {}, domains: [], oses: [],
+  }))
+  assert.match(html, /aria-label="Peripheral type"/)
+  assert.match(html, /aria-label="Peripheral name prefix"/)
+  assert.match(html, /value="printer" selected/)
+  assert.match(html, /value="HP"/)
+})
+
+test('sends peripheral search parameters safely', async () => {
+  const originalFetch = globalThis.fetch
+  let url
+  globalThis.fetch = async (input) => {
+    url = input
+    return { ok: true, status: 200, headers: new Headers({ 'content-type': 'application/json' }), json: async () => ({ items: [] }) }
+  }
+  try {
+    await listSystems('key', { peripheralKind: 'printer', peripheralName: '  HP & A%  ' })
+    const parsed = new URL(url)
+    assert.equal(parsed.searchParams.get('peripheral_kind'), 'printer')
+    assert.equal(parsed.searchParams.get('peripheral_name'), 'HP & A%')
+    assert.equal(parsed.searchParams.get('limit'), '2000')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
 
 test('displays the current health fields, including zero and false', () => {
   const html = renderSystem({

@@ -249,6 +249,8 @@ export default function SystemDrawer({
                 <Row label="System Type" value={sys.system_type} />
               </Section>
 
+              <PeripheralInventory peripherals={sys.peripherals} />
+
               <Section title="STORAGE">
                 <Row
                   label="Physical Disk"
@@ -391,6 +393,49 @@ export default function SystemDrawer({
         </div>
       </div>
     </>
+  );
+}
+
+export function PeripheralInventory({ peripherals }) {
+  const devices = peripherals?.devices;
+  const printers = peripherals?.printers;
+  const kinds = [
+    ["monitor", "Monitors"],
+    ["imaging", "Imaging devices (scanners/cameras)"],
+  ];
+
+  return (
+    <Section title="PERIPHERALS">
+      {!peripherals ? (
+        <div style={{ color: "var(--fg-mute)" }}>Inventory unavailable</div>
+      ) : (
+        <>
+          <div style={{ color: "var(--fg-mute)" }}>
+            Last report; printer availability is not verified. Only devices visible to the agent are included.
+          </div>
+          <Row
+            label="Printer queues"
+            value={printers == null ? "Unavailable" : printers.length === 0 ? "None reported" : printers.map((p) => {
+              const details = [p.network ? "network" : null, p.shared ? "shared" : null, p.server, p.port, p.driver].filter(Boolean).join(", ");
+              return details ? `${p.name} (${details})` : p.name;
+            }).join("; ")}
+          />
+          {kinds.map(([kind, label]) => {
+            const matching = devices?.filter((device) => device.kind === kind);
+            return (
+              <Row
+                key={kind}
+                label={label}
+                value={matching == null ? "Unavailable" : matching.length === 0 ? "None reported" : matching.map((device) => {
+                  const details = [device.manufacturer, device.resolution, device.serial ? `S/N ${device.serial}` : null, device.status && device.status !== "OK" ? device.status : null].filter(Boolean).join(", ");
+                  return details ? `${device.name} (${details})` : device.name;
+                }).join("; ")}
+              />
+            );
+          })}
+        </>
+      )}
+    </Section>
   );
 }
 

@@ -1,5 +1,6 @@
 pub mod console_user;
 pub mod disks;
+pub mod peripherals;
 pub mod software;
 pub mod wmi;
 
@@ -11,7 +12,7 @@ use crate::types::{Report, SystemInfo};
 pub use console_user::current_console_user;
 
 pub fn uptime_secs() -> Result<i64> {
-    Ok((unsafe { windows::Win32::System::SystemInformation::GetTickCount64() } / 1000) as i64)
+    Ok(wmi::real_uptime_secs())
 }
 
 pub fn collect_sync(agent_id: Uuid) -> Result<Report> {
@@ -45,6 +46,7 @@ pub fn collect_sync(agent_id: Uuid) -> Result<Report> {
     let conn = com.conn();
 
     try_collect!("system",   wmi::fill_system(conn, &mut sys));
+    peripherals::fill(conn, &mut sys);
     try_collect!("network",  wmi::fill_network(conn, &mut sys));
     try_collect!("updates",  wmi::fill_updates(conn, &mut sys));
     try_collect!("disks",    disks::fill(&mut sys));

@@ -31,12 +31,16 @@ export default function App() {
   const [pendingRefresh, setPendingRefresh] = useState({});
   const [flashSet, setFlashSet] = useState({});
   const [showAgents, setShowAgents] = useState(false);
+  const [inventoryRevision, setInventoryRevision] = useState(0);
+  const [peripheralSearch, setPeripheralSearch] = useState({ ids: null, error: null });
 
   const [filter, setFilter] = useState({
     q: "",
     domain: "",
     os: "",
     state: "all",
+    peripheralKind: "",
+    peripheralName: "",
   });
 
   const [sort, setSort] = useState({ key: "computer_name", dir: "asc" });
@@ -63,6 +67,7 @@ export default function App() {
         getStats(apiKey),
       ]);
       setSystems(sys.items || []);
+      setInventoryRevision((value) => value + 1);
       setStats(st);
     } catch (e) {
       console.error(e);
@@ -90,6 +95,7 @@ export default function App() {
 
           if (data.kind === "ingest") {
             const s = data.system;
+            setInventoryRevision((value) => value + 1);
             setSystems((cur) => {
               const idx = cur.findIndex((x) => x.agent_id === s.agent_id);
               if (idx === -1) return [...cur, s];
@@ -132,6 +138,25 @@ export default function App() {
       if (es) es.close();
     };
   }, [apiKey]);
+
+  useEffect(() => {
+    if (!apiKey || (!filter.peripheralKind && !filter.peripheralName.trim())) {
+      setPeripheralSearch({ ids: null, error: null });
+      return;
+    }
+    let active = true;
+    setPeripheralSearch({ ids: null, error: null });
+    const timer = setTimeout(() => {
+      listSystems(apiKey, filter)
+        .then((result) => {
+          if (active) setPeripheralSearch({ ids: new Set(result.items.map((s) => s.agent_id)), error: null });
+        })
+        .catch((error) => {
+          if (active) setPeripheralSearch({ ids: null, error: error.message });
+        });
+    }, 250);
+    return () => { active = false; clearTimeout(timer); };
+  }, [apiKey, filter.peripheralKind, filter.peripheralName, inventoryRevision]);
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -178,6 +203,7 @@ export default function App() {
   const filtered = useMemo(() => {
     const q = filter.q.trim().toLowerCase();
     return currentSystems.filter((s) => {
+      if ((filter.peripheralKind || filter.peripheralName.trim()) && !peripheralSearch.ids?.has(s.agent_id)) return false;
       if (q) {
         const hay = [
           s.computer_name,
@@ -206,7 +232,7 @@ export default function App() {
       }
       return true;
     });
-  }, [currentSystems, filter]);
+  }, [currentSystems, filter, peripheralSearch]);
 
   const sorted = useMemo(() => {
     const out = filtered.slice();
@@ -299,6 +325,7 @@ export default function App() {
     try {
       const sys = await listSystems(apiKey);
       setSystems(sys.items || []);
+      setInventoryRevision((value) => value + 1);
     } catch (e) {
       console.error(e);
     }
@@ -332,6 +359,11 @@ export default function App() {
         domains={domains}
         oses={oses}
       />
+      {(filter.peripheralKind || filter.peripheralName.trim()) && !peripheralSearch.ids && (
+        <div role="status" className="px-4 py-1 text-xs" style={{ color: "var(--fg-dim)" }}>
+          {peripheralSearch.error ? `Peripheral search failed: ${peripheralSearch.error}` : "Searching peripherals..."}
+        </div>
+      )}
       <div className="flex-1 overflow-hidden">
         <HackTable
           systems={sorted}

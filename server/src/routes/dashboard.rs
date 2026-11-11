@@ -19,6 +19,8 @@ pub struct ListParams {
     pub os: Option<String>,
     pub maintenance: Option<String>,     // "true" | "false" | "any"
     pub live_state: Option<String>,      // "online" | "offline" | "maintenance" | "never"
+    pub peripheral_kind: Option<String>,
+    pub peripheral_name: Option<String>,
     pub sort: Option<String>,
     pub order: Option<String>,
     pub limit: Option<i64>,
@@ -54,6 +56,27 @@ pub async fn list(
     }
     if let Some(ls) = &p.live_state {
         if ls != "any" { qb.push(" AND s.live_state = "); qb.push_bind(ls.clone()); }
+    }
+    let kind = p.peripheral_kind.as_deref().filter(|s| !s.is_empty());
+    if let Some(kind) = kind {
+        if !["printer", "monitor", "imaging"].contains(&kind) {
+            return Err(AppError::BadRequest("invalid peripheral kind".into()));
+        }
+    }
+    let name = p.peripheral_name.as_deref().map(str::trim).filter(|s| !s.is_empty());
+    if kind.is_some() || name.is_some() {
+        qb.push(" AND EXISTS (SELECT 1 FROM system_peripherals p WHERE p.agent_id = s.agent_id");
+        if let Some(kind) = kind {
+            qb.push(" AND p.kind = ");
+            qb.push_bind(kind.to_owned());
+        }
+        if let Some(name) = name {
+            let escaped = name.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_");
+            qb.push(" AND lower(p.name) LIKE lower(");
+            qb.push_bind(format!("{escaped}%"));
+            qb.push(") ESCAPE E'\\\\'");
+        }
+        qb.push(")");
     }
 
     let sort_col = match p.sort.as_deref() {

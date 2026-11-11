@@ -18,8 +18,11 @@ export async function apiFetch(path, key, opts = {}) {
   return ct.includes('application/json') ? res.json() : res.text()
 }
 
-export async function listSystems(key) {
-  return apiFetch('/api/v1/systems?limit=2000', key)
+export async function listSystems(key, filters = {}) {
+  const params = new URLSearchParams({ limit: '2000' })
+  if (filters.peripheralKind) params.set('peripheral_kind', filters.peripheralKind)
+  if (filters.peripheralName?.trim()) params.set('peripheral_name', filters.peripheralName.trim())
+  return apiFetch(`/api/v1/systems?${params}`, key)
 }
 
 export async function getSystem(key, id) {

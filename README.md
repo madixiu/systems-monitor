@@ -94,6 +94,10 @@ cargo run --release
 
 On Windows, run the installed service for normal operation. To run interactively for troubleshooting, pass `--console` to the agent executable.
 
+Windows full reports include present Plug and Play monitors (with EDID model, serial and native resolution) and imaging devices (which can include scanners and cameras). The report also includes printer queues visible to the agent's account, including network/shared queues, except queues Windows reports as offline via PrinterStatus. Printer queue status does not reliably establish whether the physical printer is connected; virtual queues may also appear. Network scanners not exposed as present Plug and Play imaging devices are not discovered. Per-user printer connections belonging to other accounts may not be visible to the service. Missing or failed collection is displayed as unavailable rather than an empty inventory. The inventory reflects the last full report, not a live device scan. Linux and older agents do not report peripherals.
+
+The server stores searchable peripheral rows in `system_peripherals`, alongside the original full report. Migration 0006 backfills existing peripheral reports and migration 0007 clears stored peripheral data (including keyboards and mice, which are no longer collected); subsequent reports replace the rows for that system, including removing rows when inventory is unavailable. The dashboard can filter systems by peripheral type and case-insensitive name prefix; both criteria must match the same peripheral. The systems API supports the same filters using `peripheral_kind` (`printer`, `monitor`, or `imaging`) and `peripheral_name`. Results follow the existing systems-list pagination and dashboard limit.
+
 ### Dashboard
 
 Configure the dashboard's `VITE_API_URL` environment variable to the server API origin. For local development, for example:

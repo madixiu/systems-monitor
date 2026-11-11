@@ -201,6 +201,7 @@ pub struct SystemPayload {
     #[serde(default)] pub pending_reboot: Option<bool>,
     #[serde(default)] pub gpu_model: Option<String>,
     #[serde(default)] pub windows_activation: Option<String>,
+    #[serde(default)] pub peripherals: Option<Value>,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
@@ -256,6 +257,7 @@ pub async fn ingest(
         .cloned()
         .collect();
 
+    let mut tx = state.pool.begin().await?;
     sqlx::query(
         r#"INSERT INTO systems (
               agent_id, computer_name, fqdn, domain, ip_addresses, mac_addresses,
@@ -351,8 +353,15 @@ pub async fn ingest(
     .bind(clock_skew_secs)
     .bind(&sys.gpu_model)
     .bind(&sys.windows_activation)
-    .execute(&state.pool)
+    .execute(&mut *tx)
     .await?;
+
+    sqlx::query("SELECT replace_system_peripherals($1, $2)")
+        .bind(agent_id)
+        .bind(SqlJson(&sys.peripherals))
+        .execute(&mut *tx)
+        .await?;
+    tx.commit().await?;
 
     if let Some(generation) = req.refresh_generation {
         sqlx::query(
@@ -415,6 +424,74 @@ mod tests {
         assert_eq!(signed_out.uptime_secs, Some(123));
     }
 
+    #[test]
+    fn peripherals_are_backward_compatible_and_retained_in_report() {
+        let legacy: SystemPayload = serde_json::from_value(json!({"computer_name": "old"})).unwrap();
+        assert!(legacy.peripherals.is_none());
+        let report: SystemPayload = serde_json::from_value(json!({
+            "computer_name": "new",
+            "peripherals": {
+                "printers": [{"name": "Shared printer", "network": true}],
+                "devices": null
+            }
+        })).unwrap();
+        let stored = serde_json::to_value(report).unwrap();
+        assert_eq!(stored["peripherals"]["printers"][0]["name"], "Shared printer");
+        assert!(stored["peripherals"]["devices"].is_null());
+    }
+
+    #[sqlx::test]
+    #[ignore = "requires a PostgreSQL test database"]
+    async fn peripheral_rows_follow_reports_and_search_filters(pool: PgPool) {
+        let agent_id = Uuid::new_v4();
+        sqlx::query("INSERT INTO agents (agent_id, token_hash) VALUES ($1, $2)")
+            .bind(agent_id).bind("peripheral-test-token").execute(&pool).await.unwrap();
+        let (tx, _) = broadcast::channel(10);
+        let state = AppState { pool, tx };
+
+        async fn report(state: &AppState, id: Uuid, inventory: Value) {
+            let system = serde_json::from_value(json!({
+                "computer_name": "test-host", "peripherals": inventory
+            })).unwrap();
+            ingest(State(state.clone()), AgentAuth { agent_id: id }, Json(IngestReq {
+                agent_id: id, collected_at: Utc::now(), refresh_generation: None, system,
+            })).await.unwrap();
+        }
+
+        report(&state, agent_id, json!({
+            "printers": [{"name": "Shared 100% printer", "network": true}],
+            "devices": [{"kind": "monitor", "name": "Dell display"}]
+        })).await;
+        let rows: Vec<(String, String)> = sqlx::query_as(
+            "SELECT kind, name FROM system_peripherals WHERE agent_id = $1 ORDER BY kind"
+        ).bind(agent_id).fetch_all(&state.pool).await.unwrap();
+        assert_eq!(rows, vec![("monitor".into(), "Dell display".into()), ("printer".into(), "Shared 100% printer".into())]);
+
+        async fn count(state: &AppState, kind: Option<&str>, name: Option<&str>) -> usize {
+            let params = dashboard::ListParams {
+                peripheral_kind: kind.map(str::to_owned),
+                peripheral_name: name.map(str::to_owned),
+                ..Default::default()
+            };
+            let Json(result) = dashboard::list(State(state.clone()), ApiAuth, Query(params)).await.unwrap();
+            result["items"].as_array().unwrap().len()
+        }
+        assert_eq!(count(&state, Some("printer"), Some("shared 100%")).await, 1);
+        assert_eq!(count(&state, Some("monitor"), Some("shared")).await, 0);
+        assert_eq!(count(&state, None, Some("SHARED 100_")).await, 0);
+        assert_eq!(count(&state, None, Some("dell")).await, 1);
+        let invalid = dashboard::ListParams { peripheral_kind: Some("invalid".into()), ..Default::default() };
+        assert!(matches!(dashboard::list(State(state.clone()), ApiAuth, Query(invalid)).await, Err(AppError::BadRequest(_))));
+
+        report(&state, agent_id, json!({"printers": [], "devices": null})).await;
+        assert_eq!(count(&state, None, Some("shared")).await, 0);
+        assert_eq!(count(&state, Some("monitor"), None).await, 0);
+        report(&state, agent_id, Value::Null).await;
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM system_peripherals WHERE agent_id = $1")
+            .bind(agent_id).fetch_one(&state.pool).await.unwrap();
+        assert_eq!(count, 0);
+    }
+
     #[sqlx::test]
     #[ignore = "requires a PostgreSQL test database"]
     async fn health_fields_reach_dashboard_stream_and_full_export(pool: PgPool) {
@@ -433,7 +510,11 @@ mod tests {
             "uptime_secs": 0,
             "pending_reboot": false,
             "gpu_model": "Test GPU",
-            "windows_activation": "Activated"
+            "windows_activation": "Activated",
+            "peripherals": {
+                "printers": [{"name": "Shared printer", "network": true}],
+                "devices": [{"kind": "monitor", "name": "Display"}]
+            }
         })).unwrap();
         let req = IngestReq {
             agent_id,
@@ -448,6 +529,8 @@ mod tests {
             assert_eq!(value["pending_reboot"], false);
             assert_eq!(value["gpu_model"], "Test GPU");
             assert_eq!(value["windows_activation"], "Activated");
+            assert_eq!(value["peripherals"]["printers"][0]["name"], "Shared printer");
+            assert_eq!(value["peripherals"]["devices"][0]["name"], "Display");
             assert!(value["last_boot"].is_string());
             assert!(value["clock_skew_secs"].is_number());
             assert_eq!(value["offline_threshold_secs"].as_f64(), Some(600.0));
