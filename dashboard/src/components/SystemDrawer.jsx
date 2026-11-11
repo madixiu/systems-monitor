@@ -24,9 +24,34 @@ import {
   Wrench,
   RefreshCw,
   Printer,
-  // Keyboard,
   Image as ImageIcon
 } from "lucide-react";
+
+// --- COPY TEXT COMPONENT ---
+function CopyText({ text, children }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async (e) => {
+    e.stopPropagation(); // Prevent triggering row clicks or closing drawer
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 350); // Reset animation
+    } catch (err) {
+      console.error("Failed to copy", err);
+    }
+  };
+
+  return (
+    <span
+      onClick={handleCopy}
+      className={`copy-text ${copied ? "copied" : ""}`}
+      title="Click to copy"
+    >
+      {children || text}
+    </span>
+  );
+}
 
 export default function SystemDrawer({
   agentId,
@@ -214,11 +239,11 @@ export default function SystemDrawer({
           {sys && tab === "overview" && (
             <div className="space-y-4">
               <Section title="IDENTITY">
-                <Row icon={Monitor} label="Name" value={sys.computer_name} />
-                <Row icon={Globe} label="FQDN" value={sys.fqdn} />
+                <Row icon={Monitor} label="Name" value={sys.computer_name} copy />
+                <Row icon={Globe} label="FQDN" value={sys.fqdn} copy />
                 <Row icon={Building2} label="Domain" value={sys.domain} />
-                <Row icon={Network} label="IPs" value={(sys.ip_addresses || []).join(", ")} />
-                <Row icon={Cable} label="MACs" value={(sys.mac_addresses || []).join(", ")} />
+                <Row icon={Network} label="IPs" value={sys.ip_addresses} copy />
+                <Row icon={Cable} label="MACs" value={sys.mac_addresses} copy />
                 <Row icon={User} label="Console User" value={sys.console_user || "—"} />
                 <Row icon={Clock} label="User Session" value={userSessionStatus(sys)} />
               </Section>
@@ -393,10 +418,20 @@ export function PeripheralInventory({ peripherals }) {
           <Row
             icon={Printer}
             label="Printer queues"
-            value={printers == null ? "Unavailable" : printers.length === 0 ? "None reported" : printers.map((p) => {
-              const details = [p.network ? "network" : null, p.shared ? "shared" : null, p.server, p.port, p.driver].filter(Boolean).join(", ");
-              return details ? `${p.name} (${details})` : p.name;
-            }).join("; ")}
+            value={
+              printers == null ? "Unavailable" :
+              printers.length === 0 ? "None reported" :
+              printers.map((p, i) => {
+                const details = [p.network ? "network" : null, p.shared ? "shared" : null, p.server, p.port, p.driver].filter(Boolean).join(", ");
+                const display = details ? `${p.name} (${details})` : p.name;
+                return (
+                  <span key={i}>
+                    <CopyText text={p.name}>{display}</CopyText>
+                    {i < printers.length - 1 ? "; " : ""}
+                  </span>
+                );
+              })
+            }
           />
           {kinds.map(([kind, label, Icon]) => {
             const matching = devices?.filter((device) => device.kind === kind);
@@ -405,10 +440,20 @@ export function PeripheralInventory({ peripherals }) {
                 key={kind}
                 icon={Icon}
                 label={label}
-                value={matching == null ? "Unavailable" : matching.length === 0 ? "None reported" : matching.map((device) => {
-                  const details = [device.manufacturer, device.resolution, device.serial ? `S/N ${device.serial}` : null, device.status && device.status !== "OK" ? device.status : null].filter(Boolean).join(", ");
-                  return details ? `${device.name} (${details})` : device.name;
-                }).join("; ")}
+                value={
+                  matching == null ? "Unavailable" :
+                  matching.length === 0 ? "None reported" :
+                  matching.map((device, i) => {
+                    const details = [device.manufacturer, device.resolution, device.serial ? `S/N ${device.serial}` : null, device.status && device.status !== "OK" ? device.status : null].filter(Boolean).join(", ");
+                    const display = details ? `${device.name} (${details})` : device.name;
+                    return (
+                      <span key={i}>
+                        <CopyText text={device.name}>{display}</CopyText>
+                        {i < matching.length - 1 ? "; " : ""}
+                      </span>
+                    );
+                  })
+                }
               />
             );
           })}
@@ -432,7 +477,22 @@ function Section({ title, children }) {
   );
 }
 
-function Row({ icon: Icon, label, value, mono }) {
+function Row({ icon: Icon, label, value, mono, copy = false }) {
+  let content = value ?? "—";
+
+  if (copy) {
+    if (typeof value === "string") {
+      content = <CopyText text={value}>{value}</CopyText>;
+    } else if (Array.isArray(value)) {
+      content = value.map((v, i) => (
+        <span key={i}>
+          <CopyText text={v}>{v}</CopyText>
+          {i < value.length - 1 ? ", " : ""}
+        </span>
+      ));
+    }
+  }
+
   return (
     <div className="flex gap-3 py-1 items-start group">
       <div className="w-36 shrink-0 flex items-center gap-2" style={{ color: "var(--fg-mute)" }}>
@@ -440,7 +500,7 @@ function Row({ icon: Icon, label, value, mono }) {
         <span>{label}</span>
       </div>
       <div className={`flex-1 break-all text-[var(--fg)] ${mono ? "font-mono" : ""}`}>
-        {value ?? "—"}
+        {content}
       </div>
     </div>
   );

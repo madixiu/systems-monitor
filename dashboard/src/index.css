@@ -143,3 +143,36 @@ input, select, textarea { font-family: inherit; }
 .row-pending {
   animation: pulse-pending 2s ease-in-out infinite;
 }
+
+/* Copy to clipboard interaction */
+.copy-text {
+  cursor: pointer;
+  position: relative;
+  display: inline-block;
+  border-radius: 4px;
+  padding: 1px 4px;
+  margin: -1px -4px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.copy-text:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--cyan) !important; /* Hints it's interactive */
+}
+
+@keyframes copy-press {
+  0% {
+    background-color: rgba(0, 0, 0, 0.6);
+    transform: scale(0.96);
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+  }
+  100% {
+    background-color: transparent;
+    transform: scale(1);
+    box-shadow: none;
+  }
+}
+
+.copy-text.copied {
+  animation: copy-press 0.35s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+}
