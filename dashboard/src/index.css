@@ -133,3 +133,13 @@ input:focus, select:focus, button:focus-visible {
 
 button { font-family: inherit; }
 input, select, textarea { font-family: inherit; }
+
+/* Pulsing left border for rows waiting on a refresh */
+@keyframes pulse-pending {
+  0%   { box-shadow: inset 3px 0 0 0 var(--cyan); background-color: rgba(0, 255, 255, 0.03); }
+  50%  { box-shadow: inset 3px 0 0 0 transparent; background-color: transparent; }
+  100% { box-shadow: inset 3px 0 0 0 var(--cyan); background-color: rgba(0, 255, 255, 0.03); }
+}
+.row-pending {
+  animation: pulse-pending 2s ease-in-out infinite;
+}

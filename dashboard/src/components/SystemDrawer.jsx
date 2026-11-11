@@ -1,11 +1,32 @@
 import { useEffect, useState } from "react";
 import { fmtBytes, fmtDate, fmtUptime, userSessionStatus } from "../lib/format";
+import { forceRefresh, setMaintenance, listNotes, addNote } from "../api";
 import {
-  forceRefresh,
-  setMaintenance,
-  listNotes,
-  addNote,
-} from "../api";
+  Monitor,
+  Globe,
+  Building2,
+  Network,
+  Cable,
+  User,
+  Clock,
+  ShieldCheck,
+  Key,
+  AlertTriangle,
+  Cpu,
+  Settings,
+  Database,
+  CircuitBoard,
+  Gamepad2,
+  Server,
+  HardDrive,
+  Bot,
+  Calendar,
+  Wrench,
+  RefreshCw,
+  Printer,
+  // Keyboard,
+  Image as ImageIcon
+} from "lucide-react";
 
 export default function SystemDrawer({
   agentId,
@@ -114,7 +135,6 @@ export default function SystemDrawer({
             className="px-4 py-2 border-b flex items-center gap-2 text-xs flex-wrap"
             style={{ borderColor: "var(--border)" }}
           >
-            {/* NEW HEART BUTTON */}
             <button
               onClick={doRefresh}
               disabled={busy}
@@ -192,101 +212,58 @@ export default function SystemDrawer({
           )}
 
           {sys && tab === "overview" && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <Section title="IDENTITY">
-                <Row label="Name" value={sys.computer_name} />
-                <Row label="FQDN" value={sys.fqdn} />
-                <Row label="Domain" value={sys.domain} />
-                <Row label="IPs" value={(sys.ip_addresses || []).join(", ")} />
-                <Row
-                  label="MACs"
-                  value={(sys.mac_addresses || []).join(", ")}
-                />
-                <Row label="Console User" value={sys.console_user || "—"} />
-                <Row label="User Session" value={userSessionStatus(sys)} />
+                <Row icon={Monitor} label="Name" value={sys.computer_name} />
+                <Row icon={Globe} label="FQDN" value={sys.fqdn} />
+                <Row icon={Building2} label="Domain" value={sys.domain} />
+                <Row icon={Network} label="IPs" value={(sys.ip_addresses || []).join(", ")} />
+                <Row icon={Cable} label="MACs" value={(sys.mac_addresses || []).join(", ")} />
+                <Row icon={User} label="Console User" value={sys.console_user || "—"} />
+                <Row icon={Clock} label="User Session" value={userSessionStatus(sys)} />
               </Section>
 
-              <Section title="OS">
-                <Row label="Name" value={sys.os_name} />
-                <Row label="Version" value={sys.os_version} />
-                <Row label="Build" value={sys.os_build} />
-                <Row label="Arch" value={sys.os_arch} />
-                <Row
-                  label="Uptime"
-                  value={fmtUptime(sys)}
-                />
-                <Row
-                  label="Last Boot"
-                  value={sys.last_boot ? fmtDate(sys.last_boot, calendar) : "—"}
-                />
-                <Row
-                  label="Clock Skew"
-                  value={
-                    sys.clock_skew_secs != null
-                      ? `${sys.clock_skew_secs}s`
-                      : "—"
-                  }
-                />
-                <Row
-                  label="OS Activation"
-                  value={
-                    sys.windows_activation ||
-                    (sys.platform === "Linux" ? "N/A" : "—")
-                  }
-                />
-                <Row
-                  label="Pending Reboot"
-                  value={sys.pending_reboot == null ? "—" : sys.pending_reboot ? "⚠️ YES" : "No"}
-                />
+              <Section title="OS & HEALTH">
+                <Row icon={ShieldCheck} label="Name" value={sys.os_name} />
+                <Row icon={ShieldCheck} label="Version" value={sys.os_version} />
+                <Row icon={ShieldCheck} label="Build" value={sys.os_build} />
+                <Row icon={Key} label="OS Activation" value={sys.windows_activation || (sys.platform === "Linux" ? "N/A" : "—")} />
+                <Row icon={AlertTriangle} label="Pending Reboot" value={sys.pending_reboot == null ? "—" : sys.pending_reboot ? "YES" : "No"} />
+                <Row icon={Clock} label="Uptime" value={fmtUptime(sys)} />
+                <Row icon={Clock} label="Last Boot" value={sys.last_boot ? fmtDate(sys.last_boot, calendar) : "—"} />
+                <Row icon={Clock} label="Clock Skew" value={sys.clock_skew_secs != null ? `${sys.clock_skew_secs}s` : "—"} />
               </Section>
 
               <Section title="HARDWARE">
-                <Row label="CPU" value={sys.cpu_model} />
-                <Row label="Cores" value={sys.cpu_cores} />
-                <Row label="RAM" value={fmtBytes(sys.ram_bytes)} />
-                <Row label="Motherboard" value={sys.motherboard} />
-                <Row label="GPU" value={sys.gpu_model || "—"} />
-                <Row label="System Type" value={sys.system_type} />
+                <Row icon={Cpu} label="CPU" value={sys.cpu_model} />
+                <Row icon={Settings} label="Cores" value={sys.cpu_cores} />
+                <Row icon={Database} label="RAM" value={fmtBytes(sys.ram_bytes)} />
+                <Row icon={CircuitBoard} label="Motherboard" value={sys.motherboard} />
+                <Row icon={Gamepad2} label="GPU" value={sys.gpu_model || "—"} />
+                <Row icon={Server} label="System Type" value={sys.system_type} />
               </Section>
 
               <PeripheralInventory peripherals={sys.peripherals} />
 
               <Section title="STORAGE">
-                <Row
-                  label="Physical Disk"
-                  value={fmtBytes(sys.main_storage_size)}
-                />
+                <Row icon={HardDrive} label="Physical Disk" value={fmtBytes(sys.main_storage_size)} />
                 {(sys.drives || []).map((d) => (
                   <Row
                     key={d.letter}
-                    label={`${d.letter} ${d.label ? "(" + d.label + ")" : ""} ${d.fs}`}
-                    value={`${fmtBytes(d.free)} free / ${fmtBytes(d.total)} total${d.is_system ? "  [SYSTEM]" : ""}`}
+                    icon={HardDrive}
+                    label={`${d.letter} ${d.label ? "(" + d.label + ")" : ""}`}
+                    value={`${fmtBytes(d.free)} free / ${fmtBytes(d.total)} total${d.is_system ? " [SYS]" : ""}`}
                   />
                 ))}
               </Section>
 
               <Section title="AGENT">
-                <Row label="Agent ID" value={sys.agent_id} mono />
-                <Row
-                  label="Reported"
-                  value={fmtDate(sys.reported_at, calendar)}
-                />
-                <Row
-                  label="Last Seen"
-                  value={fmtDate(sys.last_seen, calendar)}
-                />
-                <Row
-                  label="First Seen"
-                  value={fmtDate(sys.created_at, calendar)}
-                />
-                <Row
-                  label="Maintenance"
-                  value={sys.maintenance ? "YES" : "no"}
-                />
-                <Row
-                  label="Refresh Pending"
-                  value={sys.force_refresh ? "YES" : "no"}
-                />
+                <Row icon={Bot} label="Agent ID" value={sys.agent_id} mono />
+                <Row icon={Calendar} label="Reported" value={fmtDate(sys.reported_at, calendar)} />
+                <Row icon={Calendar} label="Last Seen" value={fmtDate(sys.last_seen, calendar)} />
+                <Row icon={Calendar} label="First Seen" value={fmtDate(sys.created_at, calendar)} />
+                <Row icon={Wrench} label="Maintenance" value={sys.maintenance ? "YES" : "no"} />
+                <Row icon={RefreshCw} label="Refresh Pending" value={sys.force_refresh ? "YES" : "no"} />
               </Section>
             </div>
           )}
@@ -400,8 +377,8 @@ export function PeripheralInventory({ peripherals }) {
   const devices = peripherals?.devices;
   const printers = peripherals?.printers;
   const kinds = [
-    ["monitor", "Monitors"],
-    ["imaging", "Imaging devices (scanners/cameras)"],
+    ["monitor", "Monitors", Monitor],
+    ["imaging", "Imaging devices (scanners/cameras)", ImageIcon],
   ];
 
   return (
@@ -410,21 +387,23 @@ export function PeripheralInventory({ peripherals }) {
         <div style={{ color: "var(--fg-mute)" }}>Inventory unavailable</div>
       ) : (
         <>
-          <div style={{ color: "var(--fg-mute)" }}>
+          <div style={{ color: "var(--fg-mute)", marginBottom: "0.5rem" }}>
             Last report; printer availability is not verified. Only devices visible to the agent are included.
           </div>
           <Row
+            icon={Printer}
             label="Printer queues"
             value={printers == null ? "Unavailable" : printers.length === 0 ? "None reported" : printers.map((p) => {
               const details = [p.network ? "network" : null, p.shared ? "shared" : null, p.server, p.port, p.driver].filter(Boolean).join(", ");
               return details ? `${p.name} (${details})` : p.name;
             }).join("; ")}
           />
-          {kinds.map(([kind, label]) => {
+          {kinds.map(([kind, label, Icon]) => {
             const matching = devices?.filter((device) => device.kind === kind);
             return (
               <Row
                 key={kind}
+                icon={Icon}
                 label={label}
                 value={matching == null ? "Unavailable" : matching.length === 0 ? "None reported" : matching.map((device) => {
                   const details = [device.manufacturer, device.resolution, device.serial ? `S/N ${device.serial}` : null, device.status && device.status !== "OK" ? device.status : null].filter(Boolean).join(", ");
@@ -443,23 +422,24 @@ function Section({ title, children }) {
   return (
     <div>
       <div
-        className="text-[10px] tracking-widest mb-1"
-        style={{ color: "var(--fg-mute)" }}
+        className="text-[10px] tracking-widest mb-2 border-b pb-1"
+        style={{ color: "var(--fg-mute)", borderColor: "var(--border)" }}
       >
         ── {title} ──
       </div>
-      <div className="space-y-0.5">{children}</div>
+      <div className="space-y-1">{children}</div>
     </div>
   );
 }
 
-function Row({ label, value, mono }) {
+function Row({ icon: Icon, label, value, mono }) {
   return (
-    <div className="flex gap-2 py-0.5">
-      <div className="w-32 shrink-0" style={{ color: "var(--fg-mute)" }}>
-        {label}
+    <div className="flex gap-3 py-1 items-start group">
+      <div className="w-36 shrink-0 flex items-center gap-2" style={{ color: "var(--fg-mute)" }}>
+        {Icon && <Icon size={14} className="opacity-70 group-hover:opacity-100 group-hover:text-cyan-400 transition-colors" />}
+        <span>{label}</span>
       </div>
-      <div className={"flex-1 break-all " + (mono ? "font-mono" : "")}>
+      <div className={`flex-1 break-all text-[var(--fg)] ${mono ? "font-mono" : ""}`}>
         {value ?? "—"}
       </div>
     </div>

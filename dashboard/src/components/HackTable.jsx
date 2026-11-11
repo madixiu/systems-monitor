@@ -6,6 +6,7 @@ import {
   fmtDate,
   userSessionStatus,
 } from "../lib/format";
+import { RefreshCw } from "lucide-react";
 
 export default function HackTable({
   systems,
@@ -69,7 +70,7 @@ export default function HackTable({
             <Th k="last_seen" sort={sort} onSort={onSort} align="right">
               LAST SEEN
             </Th>
-            <th className="text-center px-2 py-1 font-normal w-8"></th>
+            <th className="text-center px-2 py-1 font-normal w-10"></th>
           </tr>
         </thead>
         <tbody>
@@ -100,17 +101,12 @@ export default function HackTable({
               ? rawUser.split("\\").pop()
               : rawUser || "—";
             const session = userSessionStatus(s);
-            // const sessionColor = session === "signed in"
-            //   ? "var(--green)"
-            //   : session === "signed out"
-            //     ? "var(--amber)"
-            //     : "var(--fg-mute)";
 
             return (
               <tr
                 key={s.agent_id}
                 onClick={() => onSelect(s.agent_id)}
-                className={isFlashing ? "row-flash" : ""}
+                className={`${isFlashing ? "row-flash" : ""} ${isPending ? "row-pending" : ""}`}
                 style={{
                   background: isSel
                     ? "var(--bg-selected)"
@@ -119,6 +115,7 @@ export default function HackTable({
                       : "var(--bg-row-alt)",
                   borderBottom: "1px solid var(--border)",
                   cursor: "pointer",
+                  transition: "background-color 0.2s ease",
                 }}
                 onMouseEnter={(e) => {
                   if (!isSel)
@@ -208,9 +205,15 @@ export default function HackTable({
                 </td>
                 <td className="px-2 py-1 text-center">
                   {isPending && (
-                    <span className="blink text-lg" style={{ color: "var(--amber)" }}>
-                      ↻
-                    </span>
+                    <RefreshCw
+                      size={14}
+                      className="animate-spin"
+                      style={{
+                        color: "var(--cyan)",
+                        filter: "drop-shadow(0 0 5px var(--cyan))",
+                        margin: "0 auto",
+                      }}
+                    />
                   )}
                 </td>
               </tr>
@@ -271,6 +274,7 @@ function StatusDot({ state }) {
     />
   );
 }
+
 function SessionDot({ session }) {
   const color =
     session === "signed in"
@@ -293,6 +297,7 @@ function SessionDot({ session }) {
     />
   );
 }
+
 function shortCpu(cpu) {
   if (!cpu) return "—";
   return cpu
